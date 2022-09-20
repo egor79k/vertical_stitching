@@ -32,6 +32,8 @@ if(ANDROID)
     mainwindow.cpp
     mainwindow.h
     mainwindow.ui
+    stitcher.cpp
+    stitcher.h
   )
 else()
   add_executable(vertical_stitching
@@ -39,6 +41,8 @@ else()
     mainwindow.cpp
     mainwindow.h
     mainwindow.ui
+    stitcher.cpp
+    stitcher.h
   )
 endif()
 

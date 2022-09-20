@@ -4,12 +4,13 @@
 #include <QMainWindow>
 #include <QPixmap>
 
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
-class MainWindow : public QMainWindow
-{
+
+class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
@@ -23,4 +24,5 @@ private:
     Ui::MainWindow *ui;
     QPixmap img;
 };
+
 #endif // MAINWINDOW_H

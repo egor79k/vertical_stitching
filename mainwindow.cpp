@@ -4,25 +4,26 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 
+
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
-{
+    : QMainWindow(parent),
+    ui(new Ui::MainWindow) {
     ui->setupUi(this);
 }
 
-MainWindow::~MainWindow()
-{
+
+MainWindow::~MainWindow() {
     delete ui;
 }
 
-void MainWindow::on_fileLoadButton_clicked()
-{
+
+void MainWindow::on_fileLoadButton_clicked() {
     QString fileName = QFileDialog::getOpenFileName(this,
-        QString::fromUtf8("Открыть файл"),
+        QString::fromUtf8("Open file"),
         QDir::currentPath(),
-        "Images (*.png *.xpm *.jpg);;All files (*.*)");
-    qDebug() << fileName;
+        "Images (*.tiff *.png *.jpg);;All files (*.*)");
+
     img.load(fileName);
+
     ui->display->setPixmap(img);
 }
