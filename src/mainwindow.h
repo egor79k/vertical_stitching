@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 #include <QPixmap>
+#include <QVector>
+#include "voxel_container.h"
 
 
 QT_BEGIN_NAMESPACE
@@ -20,9 +22,15 @@ public:
 private slots:
     void on_fileLoadButton_clicked();
 
+    void on_sliceSpinBox_valueChanged(int arg1);
+
 private:
     Ui::MainWindow *ui;
-    QPixmap img;
+
+    const int partialScansCount = 1; // Temporary fixed
+    QVector<VoxelContainer> partialScans;
+
+    QPixmap currSlice;
 };
 
 #endif // MAINWINDOW_H
