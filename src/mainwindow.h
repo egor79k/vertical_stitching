@@ -28,12 +28,12 @@ private slots:
     void on_scansListrowsMoved(const QModelIndex& parent, int start, int end, const QModelIndex& destination, int row);
 
 private:
+    void updateSliceBounds(int plane);
     void updateDisplay(int plane, int slice);
     void updateStitch();
 
     Ui::MainWindow *ui;
 
-    const int partialScansCount = 1; // Temporary fixed
     QList<QSharedPointer<VoxelContainer>> partialScans;
     QSharedPointer<VoxelContainer> stitchedScan;
     QPixmap currSlice;

@@ -11,12 +11,10 @@ MainWindow::MainWindow(StitcherImpl* _stitcher, QWidget *parent) :
     stitcher(_stitcher) {
     ui->setupUi(this);
 
-    connect(ui->scansList->model(), SIGNAL(rowsMoved(QModelIndex, int, int, QModelIndex, int)), this, SLOT(on_scansListrowsMoved(QModelIndex, int, int, QModelIndex, int)));
-
-//    new QListWidgetItem("111", ui->scansList);
-//    new QListWidgetItem("222", ui->scansList);
-//    new QListWidgetItem("333", ui->scansList);
-//    new QListWidgetItem("444", ui->scansList);
+    connect(ui->scansList->model(),
+        SIGNAL(rowsMoved(QModelIndex, int, int, QModelIndex, int)),
+        this,
+        SLOT(on_scansListrowsMoved(QModelIndex, int, int, QModelIndex, int)));
 }
 
 
@@ -25,26 +23,34 @@ MainWindow::~MainWindow() {
 }
 
 
-void MainWindow::updateDisplay(int plane, int slice) {
+void MainWindow::updateSliceBounds(int plane) {
+    auto size = stitchedScan->getSize();
+
     switch (plane) {
         case 0:
-            ui->display->setPixmap(stitchedScan->getXSlice(slice));
+            ui->sliceSpinBox->setMaximum(size.x - 1);
             break;
 
         case 1:
-            ui->display->setPixmap(stitchedScan->getYSlice(slice));
+            ui->sliceSpinBox->setMaximum(size.y - 1);
             break;
 
         case 2:
-            ui->display->setPixmap(stitchedScan->getZSlice(slice));
+            ui->sliceSpinBox->setMaximum(size.z - 1);
             break;
     }
+}
+
+
+void MainWindow::updateDisplay(int plane, int slice) {
+    ui->display->setPixmap(stitchedScan->getSlice(plane, slice));
 }
 
 
 void MainWindow::updateStitch() {
     if (partialScans.size() > 1) {
         stitchedScan = stitcher->stitch(*partialScans[0], *partialScans[1]);
+
         if (stitchedScan.isNull()) {
             return;
         }
@@ -52,39 +58,12 @@ void MainWindow::updateStitch() {
     else if (partialScans.size() == 1) {
         stitchedScan = partialScans[0];
     }
+
+    int plane = ui->slicePlaneBox->currentIndex();
+    updateSliceBounds(plane);
+    updateDisplay(plane, ui->sliceSpinBox->value());
 }
 
-
-//void MainWindow::updateSliceBounds() {
-//    auto size = stitchedScan->getSize();
-//    ui->sliceSpinBox->setMaximum(size.);
-//}
-
-/*
-void MainWindow::on_fileLoadButton_clicked() {
-    partialScans.resize(partialScansCount);
-
-    for (int i = 0; i < partialScansCount; ++i) {
-        // Start open file dialog to get image names
-        QStringList fileNames = QFileDialog::getOpenFileNames(this,
-            "Open files",
-            QDir::currentPath(),
-            "Images (*.png *.tiff *.jpg);;All files (*.*)");
-
-        if (fileNames.isEmpty()) {
-            return;
-        }
-        
-        // Try to load chosen images
-        if (!partialScans[i].loadFromFiles(fileNames)) {
-            QErrorMessage errorMessage;
-            errorMessage.showMessage("Failed to open image files.");
-            errorMessage.exec();
-            return;
-        }
-    }
-}
-*/
 
 void MainWindow::on_fileLoadButton_clicked() {
     // Start open file dialog to get image names
@@ -131,6 +110,7 @@ void MainWindow::on_sliceSpinBox_valueChanged(int slice) {
 
 
 void MainWindow::on_slicePlaneBox_currentIndexChanged(int plane) {
+    updateSliceBounds(plane);
     updateDisplay(plane, ui->sliceSpinBox->value());
 }
 

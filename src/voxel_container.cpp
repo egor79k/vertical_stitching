@@ -37,8 +37,6 @@ bool VoxelContainer::loadFromFiles(const QStringList& fileNames) {
         data = nullptr;
     }
 
-//    qDebug() << "\nPixels: " << img.width() << " " << img.height() << " " << img.sizeInBytes() << " " << img.depth();
-
     data = new uchar[fileNames.size() * img.sizeInBytes()];
 
     size.x = img.width();
@@ -82,6 +80,54 @@ const uchar* VoxelContainer::getData() const {
 }
 
 
+QPixmap VoxelContainer::getSlice(const int planeId, const int sliceId) {
+    Q_ASSERT(data != nullptr);
+
+    switch (planeId) {
+        case 0: {
+            QImage img(size.y, size.z, QImage::Format_Grayscale8);
+            uchar* bits = img.bits();
+
+            for (int z = 0; z < size.z; ++z) {
+                for (int y = 0; y < size.y; ++y) {
+                    for (int byte = 0; byte < bytesPerPixel; ++byte) {
+                        bits[(z * size.y + y) * bytesPerPixel + byte] = data[(z * size.x * size.y + y * size.x + sliceId) * bytesPerPixel + byte];
+                    }
+                }
+            }
+
+            return QPixmap::fromImage(img);
+        }
+
+        case 1: {
+            QImage img(size.x, size.z, QImage::Format_Grayscale8);
+            uchar* bits = img.bits();
+
+            for (int z = 0; z < size.z; ++z) {
+                for (int x = 0; x < size.x; ++x) {
+                    for (int byte = 0; byte < bytesPerPixel; ++byte) {
+                        bits[(z * size.x + x) * bytesPerPixel + byte] = data[(z * size.x * size.y + sliceId * size.y + x) * bytesPerPixel + byte];
+                    }
+                }
+            }
+
+            return QPixmap::fromImage(img);
+        }
+
+        case 2: {
+            return QPixmap::fromImage(
+                QImage(data + sliceId * size.x * size.y * bytesPerPixel,
+                size.x, size.y, size.x * bytesPerPixel,
+                QImage::Format_Grayscale8));
+        }
+
+        default:
+            return QPixmap();
+    }
+}
+
+
+/*
 QPixmap VoxelContainer::getXSlice(const int sliceId) {
     Q_ASSERT(data != nullptr);
     QImage img(size.y, size.z, QImage::Format_Grayscale8);
@@ -120,20 +166,4 @@ QPixmap VoxelContainer::getZSlice(const int sliceId) {
     Q_ASSERT(data != nullptr);
     return QPixmap::fromImage(QImage(data + sliceId * size.x * size.y * bytesPerPixel, size.x, size.y, size.x * bytesPerPixel, QImage::Format_Grayscale8));
 }
-
-
-//QPixmap VoxelContainer::getSlice(const int planeId, const int sliceId) {
-//    Q_ASSERT(data != nullptr);
-//    QImage img(size.y, size.z, QImage::Format_Grayscale8);
-//    uchar* bits = img.bits();
-
-//    for (int z = 0; z < size.z; ++z) {
-//        for (int y = 0; y < size.y; ++y) {
-//            for (int byte = 0; byte < bytesPerPixel; ++byte) {
-//                bits[(z * size.y + y) * bytesPerPixel + byte] = data[(z * size.x * size.y + sliceId * size.x + y) * bytesPerPixel + byte];
-//            }
-//        }
-//    }
-
-//    return QPixmap::fromImage(img);
-//}
+*/
