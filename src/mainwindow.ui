@@ -18,10 +18,13 @@
     <property name="geometry">
      <rect>
       <x>490</x>
-      <y>500</y>
+      <y>240</y>
       <width>80</width>
       <height>24</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Add scans to stitch&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
      <string>Load files</string>
@@ -38,6 +41,9 @@
     </property>
     <property name="toolTip">
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Viewed slice number&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="maximum">
+     <number>0</number>
     </property>
    </widget>
    <widget class="QLabel" name="sliceSpinLabel">
@@ -61,6 +67,9 @@
       <width>361</width>
       <height>541</height>
      </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::Box</enum>
     </property>
     <property name="text">
      <string/>
@@ -134,6 +143,38 @@
     </property>
     <property name="text">
      <string>Slice plane:</string>
+    </property>
+   </widget>
+   <widget class="QListWidget" name="scansList">
+    <property name="geometry">
+     <rect>
+      <x>390</x>
+      <y>10</y>
+      <width>181</width>
+      <height>221</height>
+     </rect>
+    </property>
+    <property name="dragEnabled">
+     <bool>true</bool>
+    </property>
+    <property name="dragDropMode">
+     <enum>QAbstractItemView::InternalMove</enum>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton">
+    <property name="geometry">
+     <rect>
+      <x>390</x>
+      <y>240</y>
+      <width>80</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Remove scans to stitch&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>Remove</string>
     </property>
    </widget>
   </widget>

@@ -2,6 +2,12 @@
 #include <QImage>
 #include "voxel_container.h"
 
+
+VoxelContainer::VoxelContainer(const QStringList& fileNames) {
+    loadFromFiles(fileNames);
+}
+
+
 VoxelContainer::~VoxelContainer() {
     if (data != nullptr) {
         delete[] data;
@@ -25,16 +31,16 @@ bool VoxelContainer::loadFromFiles(const QStringList& fileNames) {
 
     data = new uchar[fileNames.size() * img.sizeInBytes()];
 
-    xSize = img.width();
-    ySize = img.height();
-    zSize = fileNames.size();
+    size.x = img.width();
+    size.y = img.height();
+    size.z = fileNames.size();
     bytesPerPixel = img.depth() / 8;
     format = img.format();
 
-    for (int i = 0; i < zSize; ++i) {
+    for (int i = 0; i < size.z; ++i) {
         img.load(fileNames.at(i));
 
-        if (img.width() != xSize || img.height() != ySize) {
+        if (img.width() != size.x || img.height() != size.y) {
             return false;
         }
 
@@ -45,15 +51,25 @@ bool VoxelContainer::loadFromFiles(const QStringList& fileNames) {
 }
 
 
+const VoxelContainer::Vector3& VoxelContainer::getSize() {
+    return size;
+}
+
+
+bool VoxelContainer::isEmpty() {
+    return data == nullptr;
+}
+
+
 QPixmap VoxelContainer::getXSlice(const int sliceId) {
     Q_ASSERT(data != nullptr);
-    QImage img(ySize, zSize, format);
+    QImage img(size.y, size.z, format);
     uchar* bits = img.bits();
 
-    for (int z = 0; z < zSize; ++z) {
-        for (int y = 0; y < ySize; ++y) {
+    for (int z = 0; z < size.z; ++z) {
+        for (int y = 0; y < size.y; ++y) {
             for (int byte = 0; byte < bytesPerPixel; ++byte) {
-                bits[(z * ySize + y) * bytesPerPixel + byte] = data[(z * xSize * ySize + sliceId * xSize + y) * bytesPerPixel + byte];
+                bits[(z * size.y + y) * bytesPerPixel + byte] = data[(z * size.x * size.y + sliceId * size.x + y) * bytesPerPixel + byte];
             }
         }
     }
@@ -64,13 +80,13 @@ QPixmap VoxelContainer::getXSlice(const int sliceId) {
 
 QPixmap VoxelContainer::getYSlice(const int sliceId) {
     Q_ASSERT(data != nullptr);
-    QImage img(xSize, zSize, format);
+    QImage img(size.x, size.z, format);
     uchar* bits = img.bits();
 
-    for (int z = 0; z < zSize; ++z) {
-        for (int x = 0; x < xSize; ++x) {
+    for (int z = 0; z < size.z; ++z) {
+        for (int x = 0; x < size.x; ++x) {
             for (int byte = 0; byte < bytesPerPixel; ++byte) {
-                bits[(z * xSize + x) * bytesPerPixel + byte] = data[(z * xSize * ySize + sliceId * ySize + x) * bytesPerPixel + byte];
+                bits[(z * size.x + x) * bytesPerPixel + byte] = data[(z * size.x * size.y + sliceId * size.y + x) * bytesPerPixel + byte];
             }
         }
     }
@@ -81,5 +97,5 @@ QPixmap VoxelContainer::getYSlice(const int sliceId) {
 
 QPixmap VoxelContainer::getZSlice(const int sliceId) {
     Q_ASSERT(data != nullptr);
-    return QPixmap::fromImage(QImage(data + sliceId * xSize * ySize * bytesPerPixel, xSize, ySize, xSize * bytesPerPixel, format));
+    return QPixmap::fromImage(QImage(data + sliceId * size.x * size.y * bytesPerPixel, size.x, size.y, size.x * bytesPerPixel, format));
 }

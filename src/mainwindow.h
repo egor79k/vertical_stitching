@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QPixmap>
+#include <QSharedPointer>
 #include <QVector>
 #include "voxel_container.h"
 
@@ -21,14 +22,16 @@ public:
 
 private slots:
     void on_fileLoadButton_clicked();
-
-    void on_sliceSpinBox_valueChanged(int arg1);
+    void on_sliceSpinBox_valueChanged(int slice);
+    void on_slicePlaneBox_currentIndexChanged(int plane);
 
 private:
+    void updateDisplay(int plane, int slice);
+
     Ui::MainWindow *ui;
 
     const int partialScansCount = 1; // Temporary fixed
-    QVector<VoxelContainer> partialScans;
+    QVector<QSharedPointer<VoxelContainer>> partialScans;
 
     QPixmap currSlice;
 };

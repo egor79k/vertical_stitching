@@ -1,6 +1,6 @@
 #include "stitcher.h"
 
 
-Stitcher::Stitcher() {
-
+void SimpleStitcher::stitch(QVector<VoxelContainer>& partialScans, VoxelContainer& stitchedScan) {
+    
 }
