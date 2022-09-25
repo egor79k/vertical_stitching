@@ -120,7 +120,7 @@ void MainWindow::on_scansListrowsMoved(const QModelIndex& parent, int start, int
         --row;
     }
 
-    partialScans.swap(start, row);
+    partialScans.move(start, row);
 
     updateStitch();
 }
