@@ -5,10 +5,18 @@
 #include "./ui_mainwindow.h"
 
 
-MainWindow::MainWindow(QWidget *parent) :
+MainWindow::MainWindow(StitcherImpl* _stitcher, QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow) {
+    ui(new Ui::MainWindow),
+    stitcher(_stitcher) {
     ui->setupUi(this);
+
+    connect(ui->scansList->model(), SIGNAL(rowsMoved(QModelIndex, int, int, QModelIndex, int)), this, SLOT(on_scansListrowsMoved(QModelIndex, int, int, QModelIndex, int)));
+
+//    new QListWidgetItem("111", ui->scansList);
+//    new QListWidgetItem("222", ui->scansList);
+//    new QListWidgetItem("333", ui->scansList);
+//    new QListWidgetItem("444", ui->scansList);
 }
 
 
@@ -20,18 +28,37 @@ MainWindow::~MainWindow() {
 void MainWindow::updateDisplay(int plane, int slice) {
     switch (plane) {
         case 0:
-            ui->display->setPixmap(partialScans[0]->getXSlice(slice));
+            ui->display->setPixmap(stitchedScan->getXSlice(slice));
             break;
 
         case 1:
-            ui->display->setPixmap(partialScans[0]->getYSlice(slice));
+            ui->display->setPixmap(stitchedScan->getYSlice(slice));
             break;
 
         case 2:
-            ui->display->setPixmap(partialScans[0]->getZSlice(slice));
+            ui->display->setPixmap(stitchedScan->getZSlice(slice));
             break;
     }
 }
+
+
+void MainWindow::updateStitch() {
+    if (partialScans.size() > 1) {
+        stitchedScan = stitcher->stitch(*partialScans[0], *partialScans[1]);
+        if (stitchedScan.isNull()) {
+            return;
+        }
+    }
+    else if (partialScans.size() == 1) {
+        stitchedScan = partialScans[0];
+    }
+}
+
+
+//void MainWindow::updateSliceBounds() {
+//    auto size = stitchedScan->getSize();
+//    ui->sliceSpinBox->setMaximum(size.);
+//}
 
 /*
 void MainWindow::on_fileLoadButton_clicked() {
@@ -83,8 +110,6 @@ void MainWindow::on_fileLoadButton_clicked() {
 
     auto scanShape = partialScans.last()->getSize();
 
-//    ui->sliceSpinBox->setMaximum();
-
     new QListWidgetItem(
         "Scan " +
         QString::number(partialScans.size()) +
@@ -95,6 +120,8 @@ void MainWindow::on_fileLoadButton_clicked() {
         "x" +
         QString::number(scanShape.z),
         ui->scansList);
+
+    updateStitch();
 }
 
 
@@ -105,4 +132,15 @@ void MainWindow::on_sliceSpinBox_valueChanged(int slice) {
 
 void MainWindow::on_slicePlaneBox_currentIndexChanged(int plane) {
     updateDisplay(plane, ui->sliceSpinBox->value());
+}
+
+
+void MainWindow::on_scansListrowsMoved(const QModelIndex& parent, int start, int end, const QModelIndex& destination, int row) {
+    if (start < row) {
+        --row;
+    }
+
+    partialScans.swap(start, row);
+
+    updateStitch();
 }

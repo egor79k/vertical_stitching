@@ -4,7 +4,8 @@
 #include <QMainWindow>
 #include <QPixmap>
 #include <QSharedPointer>
-#include <QVector>
+#include <QList>
+#include "stitcher.h"
 #include "voxel_container.h"
 
 
@@ -17,23 +18,26 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow(StitcherImpl* _stitcher, QWidget *parent = nullptr);
     ~MainWindow();
 
 private slots:
     void on_fileLoadButton_clicked();
     void on_sliceSpinBox_valueChanged(int slice);
     void on_slicePlaneBox_currentIndexChanged(int plane);
+    void on_scansListrowsMoved(const QModelIndex& parent, int start, int end, const QModelIndex& destination, int row);
 
 private:
     void updateDisplay(int plane, int slice);
+    void updateStitch();
 
     Ui::MainWindow *ui;
 
     const int partialScansCount = 1; // Temporary fixed
-    QVector<QSharedPointer<VoxelContainer>> partialScans;
-
+    QList<QSharedPointer<VoxelContainer>> partialScans;
+    QSharedPointer<VoxelContainer> stitchedScan;
     QPixmap currSlice;
+    StitcherImpl* stitcher;
 };
 
 #endif // MAINWINDOW_H
