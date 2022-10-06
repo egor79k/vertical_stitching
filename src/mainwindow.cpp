@@ -71,6 +71,18 @@ void MainWindow::updateStitch() {
 }
 
 
+void MainWindow::wheelEvent(QWheelEvent* event) {
+    qreal scaleFactor = 0.9;
+
+    if (event->delta() < 0) {
+        ui->graphicsView->scale(scaleFactor, scaleFactor);
+    }
+    else {
+        ui->graphicsView->scale(1 / scaleFactor, 1 / scaleFactor);
+    }
+}
+
+
 void MainWindow::on_fileLoadButton_clicked() {
     // Start open file dialog to get image names
     QStringList fileNames = QFileDialog::getOpenFileNames(this,

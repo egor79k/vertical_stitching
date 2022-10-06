@@ -32,6 +32,7 @@ private:
     void updateSliceBounds(int plane);
     void updateDisplay(int plane, int slice);
     void updateStitch();
+    void wheelEvent(QWheelEvent* event);
 
     Ui::MainWindow *ui;
 

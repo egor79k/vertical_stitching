@@ -170,6 +170,9 @@
       <height>541</height>
      </rect>
     </property>
+    <property name="transformationAnchor">
+     <enum>QGraphicsView::AnchorUnderMouse</enum>
+    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
