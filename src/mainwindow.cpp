@@ -11,6 +11,9 @@ MainWindow::MainWindow(StitcherImpl* _stitcher, QWidget *parent) :
     stitcher(_stitcher) {
     ui->setupUi(this);
 
+    displayScene.addItem(&currSliceItem);
+    ui->graphicsView->setScene(&displayScene);
+
     connect(ui->scansList->model(),
         SIGNAL(rowsMoved(QModelIndex, int, int, QModelIndex, int)),
         this,
@@ -43,7 +46,10 @@ void MainWindow::updateSliceBounds(int plane) {
 
 
 void MainWindow::updateDisplay(int plane, int slice) {
-    ui->display->setPixmap(stitchedScan->getSlice(plane, slice));
+    currSliceItem.setPixmap(stitchedScan->getSlice(plane, slice));
+
+    // Fit slice into view frame
+    ui->graphicsView->fitInView(displayScene.sceneRect(), Qt::KeepAspectRatio);
 }
 
 

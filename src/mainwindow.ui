@@ -59,25 +59,6 @@
      <string>Viewed slice:</string>
     </property>
    </widget>
-   <widget class="QLabel" name="display">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>10</y>
-      <width>361</width>
-      <height>541</height>
-     </rect>
-    </property>
-    <property name="frameShape">
-     <enum>QFrame::StyledPanel</enum>
-    </property>
-    <property name="frameShadow">
-     <enum>QFrame::Sunken</enum>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-   </widget>
    <widget class="QSpinBox" name="partitionSpinBox">
     <property name="geometry">
      <rect>
@@ -178,6 +159,16 @@
     </property>
     <property name="text">
      <string>Remove</string>
+    </property>
+   </widget>
+   <widget class="QGraphicsView" name="graphicsView">
+    <property name="geometry">
+     <rect>
+      <x>15</x>
+      <y>11</y>
+      <width>351</width>
+      <height>541</height>
+     </rect>
     </property>
    </widget>
   </widget>

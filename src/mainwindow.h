@@ -1,8 +1,9 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <QGraphicsScene>
 #include <QMainWindow>
-#include <QPixmap>
+#include <QGraphicsPixmapItem>
 #include <QSharedPointer>
 #include <QList>
 #include "stitcher.h"
@@ -34,9 +35,11 @@ private:
 
     Ui::MainWindow *ui;
 
+    QGraphicsScene displayScene;
+    QGraphicsPixmapItem currSliceItem;
+
     QList<QSharedPointer<VoxelContainer>> partialScans;
     QSharedPointer<VoxelContainer> stitchedScan;
-    QPixmap currSlice;
     StitcherImpl* stitcher;
 };
 
