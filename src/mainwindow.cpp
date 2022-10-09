@@ -142,3 +142,16 @@ void MainWindow::on_scansListrowsMoved(const QModelIndex& parent, int start, int
 
     updateStitch();
 }
+
+
+void MainWindow::on_removeScanButton_clicked()
+{
+    int currentScanId = ui->scansList->currentRow();
+
+    if (currentScanId >= 0) {
+        ui->scansList->takeItem(currentScanId);
+        partialScans.removeAt(currentScanId);
+    }
+
+    updateStitch();
+}

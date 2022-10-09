@@ -21,6 +21,7 @@ VoxelContainer::VoxelContainer(uchar* _data, const Vector3& _size) :
 VoxelContainer::~VoxelContainer() {
     if (data != nullptr) {
         delete[] data;
+        size = {0, 0, 0};
     }
 }
 
@@ -32,10 +33,7 @@ bool VoxelContainer::loadFromFiles(const QStringList& fileNames) {
         return false;
     }
 
-    if (data != nullptr) {
-        delete[] data;
-        data = nullptr;
-    }
+    clear();
 
     data = new uchar[fileNames.size() * img.sizeInBytes()];
 
@@ -65,6 +63,15 @@ bool VoxelContainer::loadFromFiles(const QStringList& fileNames) {
 }
 
 
+void VoxelContainer::clear() {
+    if (data != nullptr) {
+        delete[] data;
+        data = nullptr;
+        size = {0, 0, 0};
+    }
+}
+
+
 bool VoxelContainer::isEmpty() {
     return data == nullptr;
 }
@@ -81,7 +88,9 @@ const uchar* VoxelContainer::getData() const {
 
 
 QPixmap VoxelContainer::getSlice(const int planeId, const int sliceId) {
-    Q_ASSERT(data != nullptr);
+    if (data == nullptr) {
+        return QPixmap();
+    }
 
     switch (planeId) {
         case 0: {

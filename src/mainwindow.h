@@ -28,6 +28,8 @@ private slots:
     void on_slicePlaneBox_currentIndexChanged(int plane);
     void on_scansListrowsMoved(const QModelIndex& parent, int start, int end, const QModelIndex& destination, int row);
 
+    void on_removeScanButton_clicked();
+
 private:
     void updateSliceBounds(int plane);
     void updateDisplay(int plane, int slice);

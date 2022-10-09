@@ -21,6 +21,7 @@ public:
     ~VoxelContainer();
 
     bool loadFromFiles(const QStringList& fileNames);
+    void clear();
 
     bool isEmpty();
 
