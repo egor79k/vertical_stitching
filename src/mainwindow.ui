@@ -27,7 +27,7 @@
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Add scans to stitch&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>Load files</string>
+     <string>Add</string>
     </property>
    </widget>
    <widget class="QSpinBox" name="sliceSpinBox">

@@ -27,6 +27,11 @@ MainWindow::~MainWindow() {
 
 
 void MainWindow::updateSliceBounds(int plane) {
+    if (stitchedScan->isEmpty()) {
+        ui->sliceSpinBox->setMaximum(0);
+        return;
+    }
+
     auto size = stitchedScan->getSize();
 
     switch (plane) {
@@ -64,6 +69,9 @@ void MainWindow::updateStitch() {
     else if (partialScans.size() == 1) {
         stitchedScan = partialScans[0];
     }
+    else {
+        stitchedScan->clear();
+    }
 
     int plane = ui->slicePlaneBox->currentIndex();
     updateSliceBounds(plane);
@@ -87,7 +95,8 @@ void MainWindow::on_fileLoadButton_clicked() {
     // Start open file dialog to get image names
     QStringList fileNames = QFileDialog::getOpenFileNames(this,
         "Open files",
-        QDir::currentPath(),
+//        QDir::currentPath(),
+        "/home/egor/projects/TomoPhantom/img/Shepp-Logan/"
         "Images (*.png *.tiff *.jpg);;All files (*.*)");
 
     if (fileNames.isEmpty()) {
@@ -151,7 +160,7 @@ void MainWindow::on_removeScanButton_clicked()
     if (currentScanId >= 0) {
         ui->scansList->takeItem(currentScanId);
         partialScans.removeAt(currentScanId);
+        updateStitch();
     }
 
-    updateStitch();
 }
