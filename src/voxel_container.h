@@ -20,7 +20,8 @@ public:
     VoxelContainer(uchar* _data, const Vector3& _size);
     ~VoxelContainer();
 
-    bool loadFromFiles(const QStringList& fileNames);
+    bool loadFromImages(const QStringList& fileNames);
+    bool loadFromJson(const QString &fileName);
     void clear();
 
     bool isEmpty();

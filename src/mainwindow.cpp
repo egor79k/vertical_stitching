@@ -1,4 +1,3 @@
-#include <QErrorMessage>
 #include <QFileDialog>
 #include <QDebug>
 #include "mainwindow.h"
@@ -96,26 +95,34 @@ void MainWindow::on_fileLoadButton_clicked() {
     QStringList fileNames = QFileDialog::getOpenFileNames(this,
         "Open files",
 //        QDir::currentPath(),
-        "/home/egor/projects/TomoPhantom/img/Shepp-Logan/"
-        "Images (*.png *.tiff *.jpg);;All files (*.*)");
+        "/home/egor/projects/stacked-tomoscan-gen/img/Shepp-Logan/",
+        "Parameters (*.json);;Images (*.png *.tiff *.jpg);;All files (*.*)");
 
     if (fileNames.isEmpty()) {
         return;
     }
 
-    // Try to load chosen images
     partialScans.append(QSharedPointer<VoxelContainer>::create());
 
-    if (!partialScans.last()->loadFromFiles(fileNames)) {
-        QErrorMessage errorMessage;
-        errorMessage.showMessage("Failed to load image files.");
-        errorMessage.exec();
-        partialScans.removeLast();
-        return;
+    if (fileNames.size() == 1 && fileNames.back().endsWith(".json")) {
+        // Try to load from parameters
+        if (!partialScans.last()->loadFromJson(fileNames.back())) {
+            partialScans.removeLast();
+            return;
+        }
     }
+    else {
+        // Try to load from chosen images
+        if (!partialScans.last()->loadFromImages(fileNames)) {
+            partialScans.removeLast();
+            return;
+        }
+    }
+
 
     auto scanShape = partialScans.last()->getSize();
 
+    // Add new scan to visible list
     new QListWidgetItem(
         "Scan " +
         QString::number(partialScans.size()) +

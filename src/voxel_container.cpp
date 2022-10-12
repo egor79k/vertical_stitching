@@ -1,5 +1,11 @@
 #include <QDebug>
+#include <QFile>
 #include <QImage>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QJsonParseError>
+#include <QMessageBox>
+#include <tinytiffreader.h>
 #include "voxel_container.h"
 
 
@@ -9,7 +15,7 @@ qsizetype VoxelContainer::Vector3::volume() {
 
 
 VoxelContainer::VoxelContainer(const QStringList& fileNames) {
-    loadFromFiles(fileNames);
+    loadFromImages(fileNames);
 }
 
 
@@ -26,10 +32,11 @@ VoxelContainer::~VoxelContainer() {
 }
 
 
-bool VoxelContainer::loadFromFiles(const QStringList& fileNames) {
+bool VoxelContainer::loadFromImages(const QStringList& fileNames) {
     QImage img(fileNames.first());
 
     if (img.isNull()) {
+        QMessageBox::information(0, "Error", "Failed to load image " + fileNames.first());
         return false;
     }
 
@@ -46,6 +53,11 @@ bool VoxelContainer::loadFromFiles(const QStringList& fileNames) {
     for (int i = 0; i < size.z; ++i) {
         img.load(fileNames.at(i));
 
+        if (img.isNull()) {
+            QMessageBox::information(0, "Error", "Failed to load image " + fileNames.at(i));
+            return false;
+        }
+
         if (img.format() != QImage::Format_Grayscale8) {
             img = img.convertToFormat(QImage::Format_Grayscale8);
         }
@@ -60,6 +72,38 @@ bool VoxelContainer::loadFromFiles(const QStringList& fileNames) {
     }
 
     return true;
+}
+
+
+bool VoxelContainer::loadFromJson(const QString& fileName) {
+    // Open parameters file
+    QFile file(fileName);
+
+    if(!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::information(0, "File opening error", file.errorString());
+    }
+
+    // Parse JSON parameters
+    QJsonParseError error;
+    QJsonObject json = QJsonDocument::fromJson(file.readAll(), &error).object();
+
+    if (error.error) {
+        qDebug() << "Error: " << error.errorString() << error.offset << error.error;
+        QMessageBox::information(0, "JSON parsing error", error.errorString());
+        return false;
+    }
+
+    int height = json["height"].toInt();
+    QString format = json["format"].toString();
+    QString imgPath = fileName.left(fileName.lastIndexOf('/') + 1);
+    QStringList imgNames;
+
+    // Create image files list
+    for (int i = 0; i < height; ++i) {
+        imgNames.append(imgPath + QString::number(i) + format);
+    }
+
+    return loadFromImages(imgNames);
 }
 
 
