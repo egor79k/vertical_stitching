@@ -5,7 +5,7 @@
 #include <QJsonDocument>
 #include <QJsonParseError>
 #include <QMessageBox>
-#include <tinytiffreader.h>
+#include <tinytiffreader.hxx>
 #include "voxel_container.h"
 
 
@@ -19,7 +19,7 @@ VoxelContainer::VoxelContainer(const QStringList& fileNames) {
 }
 
 
-VoxelContainer::VoxelContainer(uchar* _data, const Vector3& _size) :
+VoxelContainer::VoxelContainer(float* _data, const Vector3& _size) :
     data(_data),
     size(_size) {}
 
@@ -27,48 +27,138 @@ VoxelContainer::VoxelContainer(uchar* _data, const Vector3& _size) :
 VoxelContainer::~VoxelContainer() {
     if (data != nullptr) {
         delete[] data;
+        data = nullptr;
         size = {0, 0, 0};
     }
 }
 
 
-bool VoxelContainer::loadFromImages(const QStringList& fileNames) {
-    QImage img(fileNames.first());
+void VoxelContainer::fitToFloatRange(int64_t min, int64_t max) {
+    for (int z = 0; z < size.z; ++z) {
+        for (int y = 0; y < size.y; ++y) {
+            for (int x = 0; x < size.x; ++x) {
+                int id = z * size.x * size.y + y * size.x + x;
+                data[id] = (data[id] - min) / (max - min) * 255;
+            }
+        }
+    }
+}
 
-    if (img.isNull()) {
-        QMessageBox::information(0, "Error", "Failed to load image " + fileNames.first());
+
+template<typename Tin>
+bool VoxelContainer::readImagesToFloat(const QStringList& fileNames) {
+    for (int i = 0; i < size.z; ++i) {
+        TinyTIFFReaderFile* tiffr = TinyTIFFReader_open(fileNames.at(i).toLocal8Bit().data());
+
+        if (!tiffr) {
+            QMessageBox::information(0, "Reading error", "Failed to load image " + fileNames.at(i));
+            return false;
+        }
+
+        uint32_t width = TinyTIFFReader_getWidth(tiffr);
+        uint32_t height = TinyTIFFReader_getHeight(tiffr);
+
+        if (width != size.x || height != size.y) {
+            QMessageBox::information(0, "Reading error", "Different size of image " + fileNames.at(i));
+            return false;
+        }
+
+//        uint16_t sformat = TinyTIFFReader_getSampleFormat(tiffr);
+//        uint16_t bits = TinyTIFFReader_getBitsPerSample(tiffr, 0);
+
+        TinyTIFFReader_readFrame<Tin, float>(tiffr, data + i * size.x * size.y);
+
+        if (TinyTIFFReader_wasError(tiffr)) {
+            QMessageBox::information(0, "Reading error", QObject::tr("error reading\n"));
+            return false;
+        }
+
+        TinyTIFFReader_close(tiffr);
+    }
+    return true;
+}
+
+
+bool VoxelContainer::loadFromImages(const QStringList& fileNames) {
+    clear();
+    
+    TinyTIFFReaderFile* tiffr = TinyTIFFReader_open(fileNames.first().toLocal8Bit().data());
+
+    if (!tiffr) {
+        QMessageBox::information(0, "Reading error", "Failed to load image " + fileNames.first());
         return false;
     }
 
-    clear();
-
-    data = new uchar[fileNames.size() * img.sizeInBytes()];
-
-    size.x = img.width();
-    size.y = img.height();
+    size.x = TinyTIFFReader_getWidth(tiffr);
+    size.y = TinyTIFFReader_getHeight(tiffr);
     size.z = fileNames.size();
-//    bytesPerPixel = img.depth() / 8;
-//    format = img.format();
 
-    for (int i = 0; i < size.z; ++i) {
-        img.load(fileNames.at(i));
+    uint16_t sformat = TinyTIFFReader_getSampleFormat(tiffr);
+    uint16_t bits = TinyTIFFReader_getBitsPerSample(tiffr, 0);
 
-        if (img.isNull()) {
-            QMessageBox::information(0, "Error", "Failed to load image " + fileNames.at(i));
+    TinyTIFFReader_close(tiffr);
+
+    data = new float[size.volume()];
+
+    switch(sformat) {
+        case TINYTIFF_SAMPLEFORMAT_UINT: {
+            switch(bits) {
+                case 8:
+                    readImagesToFloat<uint8_t>(fileNames);
+                    break;
+                case 16:
+                    readImagesToFloat<uint16_t>(fileNames);
+                    break;
+                case 32:
+                    readImagesToFloat<uint32_t>(fileNames);
+                    break;
+                default:
+                    QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
+                    return false;
+            }
+
+            fitToFloatRange(0, 1 << bits - 1);
+            break;
+        }
+
+        case TINYTIFF_SAMPLEFORMAT_INT: {
+            switch(bits) {
+                case 8:
+                    readImagesToFloat<int8_t>(fileNames);
+                    break;
+                case 16:
+                    readImagesToFloat<int16_t>(fileNames);
+                    break;
+                case 32:
+                    readImagesToFloat<int32_t>(fileNames);
+                    break;
+                default:
+                    QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
+                    return false;
+            }
+
+            int64_t range_val = 1 << (bits - 1) - 1;
+            fitToFloatRange(-range_val, range_val);
+            break;
+        }
+
+        case TINYTIFF_SAMPLEFORMAT_FLOAT: {
+            switch(bits) {
+                case 32:
+                    readImagesToFloat<float>(fileNames);
+                    break;
+                default:
+                    QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
+                    return false;
+            }
+
+            fitToFloatRange(-1, 1);
+            break;
+        }
+
+        default:
+            QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
             return false;
-        }
-
-        if (img.format() != QImage::Format_Grayscale8) {
-            img = img.convertToFormat(QImage::Format_Grayscale8);
-        }
-
-        if (img.width() != size.x || img.height() != size.y) {
-            delete[] data;
-            data = nullptr;
-            return false;
-        }
-
-        memcpy(data + i * img.sizeInBytes(), img.bits(), img.sizeInBytes());
     }
 
     return true;
@@ -126,7 +216,7 @@ const VoxelContainer::Vector3& VoxelContainer::getSize() const {
 }
 
 
-const uchar* VoxelContainer::getData() const {
+const float* VoxelContainer::getData() const {
     return data;
 }
 
@@ -143,9 +233,7 @@ QPixmap VoxelContainer::getSlice(const int planeId, const int sliceId) {
 
             for (int z = 0; z < size.z; ++z) {
                 for (int y = 0; y < size.y; ++y) {
-                    for (int byte = 0; byte < bytesPerPixel; ++byte) {
-                        bits[(z * size.y + y) * bytesPerPixel + byte] = data[(z * size.x * size.y + y * size.x + sliceId) * bytesPerPixel + byte];
-                    }
+                    bits[z * size.y + y] = static_cast<uchar>(data[z * size.x * size.y + y * size.x + sliceId]);
                 }
             }
 
@@ -158,9 +246,7 @@ QPixmap VoxelContainer::getSlice(const int planeId, const int sliceId) {
 
             for (int z = 0; z < size.z; ++z) {
                 for (int x = 0; x < size.x; ++x) {
-                    for (int byte = 0; byte < bytesPerPixel; ++byte) {
-                        bits[(z * size.x + x) * bytesPerPixel + byte] = data[(z * size.x * size.y + sliceId * size.y + x) * bytesPerPixel + byte];
-                    }
+                    bits[z * size.x + x] = static_cast<uchar>(data[z * size.x * size.y + sliceId * size.y + x]);
                 }
             }
 
@@ -168,17 +254,22 @@ QPixmap VoxelContainer::getSlice(const int planeId, const int sliceId) {
         }
 
         case 2: {
-            return QPixmap::fromImage(
-                QImage(data + sliceId * size.x * size.y * bytesPerPixel,
-                size.x, size.y, size.x * bytesPerPixel,
-                QImage::Format_Grayscale8));
+            QImage img(size.x, size.y, QImage::Format_Grayscale8);
+            uchar* bits = img.bits();
+
+            for (int y = 0; y < size.y; ++y) {
+                for (int x = 0; x < size.x; ++x) {
+                    bits[y * size.x + x] = static_cast<uchar>(data[sliceId * size.x * size.y + y * size.x + x]);
+                }
+            }
+
+            return QPixmap::fromImage(img);
         }
 
         default:
             return QPixmap();
     }
 }
-
 
 /*
 QPixmap VoxelContainer::getXSlice(const int sliceId) {

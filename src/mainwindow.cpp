@@ -95,7 +95,7 @@ void MainWindow::on_fileLoadButton_clicked() {
     QStringList fileNames = QFileDialog::getOpenFileNames(this,
         "Open files",
 //        QDir::currentPath(),
-        "/home/egor/projects/stacked-tomoscan-gen/img/Shepp-Logan/",
+        "/home/egor/projects/stacked-tomoscan-gen/img/",
         "Parameters (*.json);;Images (*.png *.tiff *.jpg);;All files (*.*)");
 
     if (fileNames.isEmpty()) {
