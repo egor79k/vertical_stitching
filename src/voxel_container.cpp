@@ -48,6 +48,7 @@ void VoxelContainer::fitToFloatRange(int64_t min, int64_t max) {
 template<typename Tin>
 bool VoxelContainer::readImagesToFloat(const QStringList& fileNames) {
     for (int i = 0; i < size.z; ++i) {
+        // Open image
         TinyTIFFReaderFile* tiffr = TinyTIFFReader_open(fileNames.at(i).toLocal8Bit().data());
 
         if (!tiffr) {
@@ -58,14 +59,13 @@ bool VoxelContainer::readImagesToFloat(const QStringList& fileNames) {
         uint32_t width = TinyTIFFReader_getWidth(tiffr);
         uint32_t height = TinyTIFFReader_getHeight(tiffr);
 
+        // Check that current image size is the same
         if (width != size.x || height != size.y) {
             QMessageBox::information(0, "Reading error", "Different size of image " + fileNames.at(i));
             return false;
         }
 
-//        uint16_t sformat = TinyTIFFReader_getSampleFormat(tiffr);
-//        uint16_t bits = TinyTIFFReader_getBitsPerSample(tiffr, 0);
-
+        // Read iamge data to current slice
         TinyTIFFReader_readFrame<Tin, float>(tiffr, data + i * size.x * size.y);
 
         if (TinyTIFFReader_wasError(tiffr)) {
@@ -75,6 +75,7 @@ bool VoxelContainer::readImagesToFloat(const QStringList& fileNames) {
 
         TinyTIFFReader_close(tiffr);
     }
+
     return true;
 }
 
@@ -82,6 +83,7 @@ bool VoxelContainer::readImagesToFloat(const QStringList& fileNames) {
 bool VoxelContainer::loadFromImages(const QStringList& fileNames) {
     clear();
     
+    // Open first image
     TinyTIFFReaderFile* tiffr = TinyTIFFReader_open(fileNames.first().toLocal8Bit().data());
 
     if (!tiffr) {
@@ -89,6 +91,7 @@ bool VoxelContainer::loadFromImages(const QStringList& fileNames) {
         return false;
     }
 
+    // Read first image parameters
     size.x = TinyTIFFReader_getWidth(tiffr);
     size.y = TinyTIFFReader_getHeight(tiffr);
     size.z = fileNames.size();
@@ -100,6 +103,7 @@ bool VoxelContainer::loadFromImages(const QStringList& fileNames) {
 
     data = new float[size.volume()];
 
+    // Determine the image data type, read it to float type and convert to common range
     switch(sformat) {
         case TINYTIFF_SAMPLEFORMAT_UINT: {
             switch(bits) {

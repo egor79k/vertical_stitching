@@ -94,8 +94,7 @@ void MainWindow::on_fileLoadButton_clicked() {
     // Start open file dialog to get image names
     QStringList fileNames = QFileDialog::getOpenFileNames(this,
         "Open files",
-//        QDir::currentPath(),
-        "/home/egor/projects/stacked-tomoscan-gen/img/",
+        QDir::currentPath(),
         "Parameters (*.json);;Images (*.png *.tiff *.jpg);;All files (*.*)");
 
     if (fileNames.isEmpty()) {
