@@ -14,7 +14,22 @@ public:
 
 
 class SimpleStitcher : public StitcherImpl {
+public:
     QSharedPointer<VoxelContainer> stitch(const VoxelContainer& scan_1, const VoxelContainer& scan_2) override;
+};
+
+
+class OverlapDifferenceStitcher : public StitcherImpl {
+public:
+    QSharedPointer<VoxelContainer> stitch(const VoxelContainer& scan_1, const VoxelContainer& scan_2) override;
+
+private:
+    float countDifference(const VoxelContainer& scan_1, const VoxelContainer& scan_2, const int overlap);
+    int determineOptimalOverlap(const VoxelContainer& scan_1, const VoxelContainer& scan_2);
+
+    static const int minOverlap;
+    static const int maxOverlap;
+    static const int offsetStep;
 };
 
 #endif // STITCHER_H
