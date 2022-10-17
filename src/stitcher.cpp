@@ -33,14 +33,18 @@ const int OverlapDifferenceStitcher::offsetStep = 1;
 
 float OverlapDifferenceStitcher::countDifference(const VoxelContainer& scan_1, const VoxelContainer& scan_2, const int overlap) {
     VoxelContainer::Vector3 size_1 = scan_1.getSize();
-    VoxelContainer::Vector3 size_2 = scan_2.getSize();
 
     const float* data_1 = scan_1.getData();
     const float* data_2 = scan_2.getData();
 
     float diff = 0;
 
-    // Not implemented
+    int scanOffset = size_1.x * size_1.y * (size_1.z - overlap);
+    int offsetVolume = overlap * size_1.x * size_1.y;
+
+    for (int i = 0; i < offsetVolume; ++i) {
+        diff += (data_1[i + scanOffset] + data_2[i]);
+    }
 
     return diff;
 }
