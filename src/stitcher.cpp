@@ -1,3 +1,4 @@
+#include <QDebug>
 #include <QErrorMessage>
 #include <QMessageBox>
 #include <limits>
@@ -43,7 +44,7 @@ float OverlapDifferenceStitcher::countDifference(const VoxelContainer& scan_1, c
     int offsetVolume = overlap * size_1.x * size_1.y;
 
     for (int i = 0; i < offsetVolume; ++i) {
-        diff += (data_1[i + scanOffset] + data_2[i]);
+        diff += (data_1[i + scanOffset] - data_2[i]) * (data_1[i + scanOffset] - data_2[i]);
     }
 
     return diff;
