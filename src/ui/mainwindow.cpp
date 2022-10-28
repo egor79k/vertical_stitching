@@ -2,6 +2,7 @@
 #include <QDebug>
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
+#include "tiff_image.h"
 
 
 MainWindow::MainWindow(StitcherImpl* _stitcher, QWidget *parent) :
@@ -50,7 +51,9 @@ void MainWindow::updateSliceBounds(int plane) {
 
 
 void MainWindow::updateDisplay(int plane, int slice) {
-    currSliceItem.setPixmap(stitchedScan->getSlice(plane, slice));
+    TiffImage<uint8_t> img;
+    stitchedScan->getSlice<uint8_t>(img, plane, slice, true);
+    currSliceItem.setPixmap(QPixmap::fromImage(QImage(img.getData(), img.getWidth(), img.getHeight(), QImage::Format_Grayscale8)));
 
     // Fit slice into view frame
     ui->graphicsView->fitInView(displayScene.sceneRect(), Qt::KeepAspectRatio);

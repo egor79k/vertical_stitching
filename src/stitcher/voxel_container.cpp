@@ -1,3 +1,4 @@
+#include <limits>
 #include <QDebug>
 #include <QFile>
 #include <QImage>
@@ -224,56 +225,6 @@ const float* VoxelContainer::getData() const {
     return data;
 }
 
-
-QPixmap VoxelContainer::getSlice(const int planeId, const int sliceId) {
-    if (data == nullptr) {
-        return QPixmap();
-    }
-
-    switch (planeId) {
-        case 0: {
-            QImage img(size.y, size.z, QImage::Format_Grayscale8);
-            uchar* bits = img.bits();
-
-            for (int z = 0; z < size.z; ++z) {
-                for (int y = 0; y < size.y; ++y) {
-                    bits[z * size.y + y] = data[z * size.x * size.y + y * size.x + sliceId];
-                }
-            }
-
-            return QPixmap::fromImage(img);
-        }
-
-        case 1: {
-            QImage img(size.x, size.z, QImage::Format_Grayscale8);
-            uchar* bits = img.bits();
-
-            for (int z = 0; z < size.z; ++z) {
-                for (int x = 0; x < size.x; ++x) {
-                    bits[z * size.x + x] = data[z * size.x * size.y + sliceId * size.y + x];
-                }
-            }
-
-            return QPixmap::fromImage(img);
-        }
-
-        case 2: {
-            QImage img(size.x, size.y, QImage::Format_Grayscale8);
-            uchar* bits = img.bits();
-
-            for (int y = 0; y < size.y; ++y) {
-                for (int x = 0; x < size.x; ++x) {
-                    bits[y * size.x + x] = data[sliceId * size.x * size.y + y * size.x + x];
-                }
-            }
-
-            return QPixmap::fromImage(img);
-        }
-
-        default:
-            return QPixmap();
-    }
-}
 
 /*
 QPixmap VoxelContainer::getXSlice(const int sliceId) {

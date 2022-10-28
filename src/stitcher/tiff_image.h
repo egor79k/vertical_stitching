@@ -1,17 +1,21 @@
 #ifndef TIFFIMAGE_H
 #define TIFFIMAGE_H
-
+#include <iostream>
 
 template<typename T>
 class TiffImage
 {
 public:
+    TiffImage() {}
     TiffImage(const size_t width_, const size_t height_);
+    TiffImage(const TiffImage& other);
     ~TiffImage();
 
     void clear();
-    T* data();
-    const T* data() const;
+    void resize(const size_t new_width, const size_t new_height);
+
+    T* getData();
+    const T* getData() const;
 
     size_t getWidth() const;
     size_t getHeight() const;
@@ -26,20 +30,32 @@ private:
 
 
 template<typename T>
-TiffImage::TiffImage(const size_t width_, const size_t height_) :
+TiffImage<T>::TiffImage(const size_t width_, const size_t height_) :
     data(new T[width_ * height_]),
     width(width_),
     height(height_) {}
 
 
 template<typename T>
-TiffImage::~TiffImage() {
+TiffImage<T>::TiffImage(const TiffImage& other) {
+    if (other.data != nullptr) {
+        width = other.width;
+        height = other.height;
+        data = new T[width * height];
+        memcpy(data, other.data, width * height);
+    }
+    printf("Copied\n");
+}
+
+
+template<typename T>
+TiffImage<T>::~TiffImage() {
     clear();
 }
 
 
 template<typename T>
-void TiffImage::clear() {
+void TiffImage<T>::clear() {
     if (data != nullptr) {
         delete[] data;
     }
@@ -51,28 +67,37 @@ void TiffImage::clear() {
 
 
 template<typename T>
-T *TiffImage::data()
+void TiffImage<T>::resize(const size_t new_width, const size_t new_height) {
+    clear();
+    width = new_width;
+    height = new_height;
+    data = new T[width * height];
+}
+
+
+template<typename T>
+T *TiffImage<T>::getData()
 {
     return data;
 }
 
 
 template<typename T>
-const T *TiffImage::data() const
+const T *TiffImage<T>::getData() const
 {
     return data;
 }
 
 
 template<typename T>
-size_t TiffImage::getWidth() const
+size_t TiffImage<T>::getWidth() const
 {
     return width;
 }
 
 
 template<typename T>
-size_t TiffImage::getHeight() const
+size_t TiffImage<T>::getHeight() const
 {
     return height;
 }
