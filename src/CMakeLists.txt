@@ -1,15 +1,14 @@
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
-find_package(TinyTIFF REQUIRED)
+
+add_subdirectory(stitcher)
+
+include_directories(stitcher)
 
 add_executable(vertical_stitching
     main.cpp
-    mainwindow.cpp
-    mainwindow.h
-    mainwindow.ui
-    stitcher.cpp
-    stitcher.h
-    voxel_container.cpp
-    voxel_container.h
+    ui/mainwindow.cpp
+    ui/mainwindow.h
+    ui/mainwindow.ui
     )
 
-target_link_libraries(vertical_stitching PRIVATE Qt5::Widgets TinyTIFF)
+target_link_libraries(vertical_stitching PRIVATE Qt5::Widgets stitcher)
