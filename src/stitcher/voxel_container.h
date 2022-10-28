@@ -15,10 +15,17 @@ public:
 
         size_t volume();
     };
+
+    struct Range {
+        float min;
+        float max;
+
+        float fit(float val, const Range nr);
+    };
     
     VoxelContainer() = default;
     VoxelContainer(const std::vector<std::string>& fileNames);
-    VoxelContainer(float* _data, const Vector3& _size);
+    VoxelContainer(float* _data, const Vector3& _size, const Range& _range);
     ~VoxelContainer();
 
     bool loadFromImages(const std::vector<std::string>& fileNames);
@@ -27,8 +34,9 @@ public:
 
     bool isEmpty();
 
-    const Vector3& getSize() const;
     const float* getData() const;
+    const Vector3& getSize() const;
+    const Range& getRange() const;
 
     template<typename T>
     void getSlice(TiffImage<T>& img, const int planeId, const int sliceId, bool fitToRange = true);
@@ -43,10 +51,9 @@ private:
     template<typename Tin>
     bool readImagesToFloat(const std::vector<std::string> &fileNames);
 
-    Vector3 size = {0, 0, 0};
     float* data = nullptr;
-    float rangeMin = 0;
-    float rangeMax = 255;
+    Vector3 size = {0, 0, 0};
+    Range range = {0, 0};
 };
 
 
@@ -57,16 +64,12 @@ void VoxelContainer::getSlice(TiffImage<T>& img, const int planeId, const int sl
         return;
     }
 
-    // TEMP
-    float newMin = rangeMin;
-    float newMax = rangeMax;
+    Range newRange = range;
 
     if (fitToRange) {
-        newMax = std::numeric_limits<T>::max();
-        newMin = std::numeric_limits<T>::min();
+        newRange.max = std::numeric_limits<T>::max();
+        newRange.min = std::numeric_limits<T>::min();
     }
-
-    #define FIT_TO_RANGE(X, MIN, MAX) (X - rangeMin) / (rangeMax - rangeMin) * (MAX - MIN) + MIN;
 
     switch (planeId) {
         case 0: {
@@ -75,7 +78,7 @@ void VoxelContainer::getSlice(TiffImage<T>& img, const int planeId, const int sl
 
             for (int z = 0; z < size.z; ++z) {
                 for (int y = 0; y < size.y; ++y) {
-                    bits[z * size.y + y] = FIT_TO_RANGE(data[z * size.x * size.y + y * size.x + sliceId], newMin, newMax);
+                    bits[z * size.y + y] = range.fit(data[z * size.x * size.y + y * size.x + sliceId], newRange);
                 }
             }
 
@@ -88,7 +91,7 @@ void VoxelContainer::getSlice(TiffImage<T>& img, const int planeId, const int sl
 
             for (int z = 0; z < size.z; ++z) {
                 for (int x = 0; x < size.x; ++x) {
-                    bits[z * size.x + x] = FIT_TO_RANGE(data[z * size.x * size.y + sliceId * size.y + x], newMin, newMax);
+                    bits[z * size.x + x] = range.fit(data[z * size.x * size.y + sliceId * size.y + x], newRange);
                 }
             }
 
@@ -101,7 +104,7 @@ void VoxelContainer::getSlice(TiffImage<T>& img, const int planeId, const int sl
 
             for (int y = 0; y < size.y; ++y) {
                 for (int x = 0; x < size.x; ++x) {
-                    bits[y * size.x + x] = FIT_TO_RANGE(data[sliceId * size.x * size.y + y * size.x + x], newMin, newMax);
+                    bits[y * size.x + x] = range.fit(data[sliceId * size.x * size.y + y * size.x + x], newRange);
                 }
             }
 
@@ -112,8 +115,6 @@ void VoxelContainer::getSlice(TiffImage<T>& img, const int planeId, const int sl
             img.clear();
             return;
     }
-
-    #undef FIT_TO_RANGE
 }
 
 

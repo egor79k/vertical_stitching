@@ -21,7 +21,7 @@ std::shared_ptr<VoxelContainer> SimpleStitcher::stitch(const VoxelContainer& sca
     memcpy(stitchedData, scan_1.getData(), size_1.volume() * sizeof(float));
     memcpy(stitchedData + size_1.volume(), scan_2.getData(), size_2.volume() * sizeof(float));
 
-    return std::make_shared<VoxelContainer>(stitchedData, stitchedSize);
+    return std::make_shared<VoxelContainer>(stitchedData, stitchedSize, scan_1.getRange());
 }
 
 
@@ -86,5 +86,5 @@ std::shared_ptr<VoxelContainer> OverlapDifferenceStitcher::stitch(const VoxelCon
     memcpy(stitchedData, scan_1.getData(), size_1.volume() * sizeof(float));
     memcpy(stitchedData + size_1.volume(), scan_2.getData() + offsetVolume, scanVolume * sizeof(float));
 
-    return std::make_shared<VoxelContainer>(stitchedData, stitchedSize);
+    return std::make_shared<VoxelContainer>(stitchedData, stitchedSize, scan_1.getRange());
 }

@@ -12,35 +12,37 @@ size_t VoxelContainer::Vector3::volume() {
 }
 
 
+float VoxelContainer::Range::fit(float val, const Range nr) {
+    return (val - min) / (max - min) * (nr.max - nr.min) + nr.min;
+}
+
+
 VoxelContainer::VoxelContainer(const std::vector<std::string>& fileNames) {
     loadFromImages(fileNames);
 }
 
 
-VoxelContainer::VoxelContainer(float* _data, const Vector3& _size) :
+VoxelContainer::VoxelContainer(float* _data, const Vector3& _size, const Range& _range) :
     data(_data),
-    size(_size) {}
+    size(_size),
+    range(_range) {}
 
 
 VoxelContainer::~VoxelContainer() {
-    if (data != nullptr) {
-        delete[] data;
-        data = nullptr;
-        size = {0, 0, 0};
-    }
+    clear();
 }
 
 
-void VoxelContainer::fitToFloatRange(int64_t min, int64_t max) {
-    for (int z = 0; z < size.z; ++z) {
-        for (int y = 0; y < size.y; ++y) {
-            for (int x = 0; x < size.x; ++x) {
-                int id = z * size.x * size.y + y * size.x + x;
-                data[id] = (data[id] - min) / (max - min) * 255;
-            }
-        }
-    }
-}
+// void VoxelContainer::fitToFloatRange(int64_t min, int64_t max) {
+//     for (int z = 0; z < size.z; ++z) {
+//         for (int y = 0; y < size.y; ++y) {
+//             for (int x = 0; x < size.x; ++x) {
+//                 int id = z * size.x * size.y + y * size.x + x;
+//                 data[id] = (data[id] - min) / (max - min) * 255;
+//             }
+//         }
+//     }
+// }
 
 
 template<typename Tin>
@@ -119,7 +121,7 @@ bool VoxelContainer::loadFromImages(const std::vector<std::string>& fileNames) {
                     return false;
             }
 
-            fitToFloatRange(0, 1 << bits - 1);
+            range = {0, static_cast<float>(1 << bits - 1)};
             break;
         }
 
@@ -139,8 +141,8 @@ bool VoxelContainer::loadFromImages(const std::vector<std::string>& fileNames) {
                     return false;
             }
 
-            int64_t range_val = 1 << (bits - 1) - 1;
-            fitToFloatRange(-range_val, range_val);
+            float range_val = 1 << (bits - 1) - 1;
+            range = {-range_val, range_val};
             break;
         }
 
@@ -154,7 +156,7 @@ bool VoxelContainer::loadFromImages(const std::vector<std::string>& fileNames) {
                     return false;
             }
 
-            fitToFloatRange(-1, 1);
+            range = {-1, 1};
             break;
         }
 
@@ -205,6 +207,7 @@ void VoxelContainer::clear() {
         delete[] data;
         data = nullptr;
         size = {0, 0, 0};
+        range = {0, 0};
     }
 }
 
@@ -214,13 +217,18 @@ bool VoxelContainer::isEmpty() {
 }
 
 
+const float* VoxelContainer::getData() const {
+    return data;
+}
+
+
 const VoxelContainer::Vector3& VoxelContainer::getSize() const {
     return size;
 }
 
 
-const float* VoxelContainer::getData() const {
-    return data;
+const VoxelContainer::Range& VoxelContainer::getRange() const {
+    return range;
 }
 
 
