@@ -1,4 +1,4 @@
-#include <QMessageBox>
+#include <cstring>
 #include <limits>
 #include "stitcher.h"
 
@@ -10,7 +10,7 @@ std::shared_ptr<VoxelContainer> SimpleStitcher::stitch(const VoxelContainer& sca
     VoxelContainer::Vector3 size_2 = scan_2.getSize();
 
     if (size_1.x != size_2.x || size_1.y != size_2.y) {
-        QMessageBox::information(0, "Stitching error", "Failed to stitch scans due to different sizes.");
+        // QMessageBox::information(0, "Stitching error", "Failed to stitch scans due to different sizes.");
         return nullptr;
     }
 
@@ -70,7 +70,7 @@ std::shared_ptr<VoxelContainer> OverlapDifferenceStitcher::stitch(const VoxelCon
     VoxelContainer::Vector3 size_2 = scan_2.getSize();
 
     if (size_1.x != size_2.x || size_1.y != size_2.y) {
-        QMessageBox::information(0, "Stitching error", "Failed to stitch scans due to different sizes.");
+        // QMessageBox::information(0, "Stitching error", "Failed to stitch scans due to different sizes.");
         return nullptr;
     }
 

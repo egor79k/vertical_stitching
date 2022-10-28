@@ -1,6 +1,6 @@
 #ifndef TIFFIMAGE_H
 #define TIFFIMAGE_H
-#include <iostream>
+
 
 template<typename T>
 class TiffImage
@@ -44,7 +44,6 @@ TiffImage<T>::TiffImage(const TiffImage& other) {
         data = new T[width * height];
         memcpy(data, other.data, width * height);
     }
-    printf("Copied\n");
 }
 
 

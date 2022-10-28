@@ -1,21 +1,18 @@
 #include <limits>
-#include <QDebug>
 #include <QFile>
-#include <QImage>
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QJsonParseError>
-#include <QMessageBox>
 #include <tinytiffreader.hxx>
 #include "voxel_container.h"
 
 
-qsizetype VoxelContainer::Vector3::volume() {
+size_t VoxelContainer::Vector3::volume() {
     return x * y * z;
 }
 
 
-VoxelContainer::VoxelContainer(const QStringList& fileNames) {
+VoxelContainer::VoxelContainer(const std::vector<std::string>& fileNames) {
     loadFromImages(fileNames);
 }
 
@@ -47,13 +44,13 @@ void VoxelContainer::fitToFloatRange(int64_t min, int64_t max) {
 
 
 template<typename Tin>
-bool VoxelContainer::readImagesToFloat(const QStringList& fileNames) {
+bool VoxelContainer::readImagesToFloat(const std::vector<std::string>& fileNames) {
     for (int i = 0; i < size.z; ++i) {
         // Open image
-        TinyTIFFReaderFile* tiffr = TinyTIFFReader_open(fileNames.at(i).toLocal8Bit().data());
+        TinyTIFFReaderFile* tiffr = TinyTIFFReader_open(fileNames.at(i).data());
 
         if (!tiffr) {
-            QMessageBox::information(0, "Reading error", "Failed to load image " + fileNames.at(i));
+            // QMessageBox::information(0, "Reading error", "Failed to load image " + fileNames.at(i));
             return false;
         }
 
@@ -62,7 +59,7 @@ bool VoxelContainer::readImagesToFloat(const QStringList& fileNames) {
 
         // Check that current image size is the same
         if (width != size.x || height != size.y) {
-            QMessageBox::information(0, "Reading error", "Different size of image " + fileNames.at(i));
+            // QMessageBox::information(0, "Reading error", "Different size of image " + fileNames.at(i));
             return false;
         }
 
@@ -70,7 +67,7 @@ bool VoxelContainer::readImagesToFloat(const QStringList& fileNames) {
         TinyTIFFReader_readFrame<Tin, float>(tiffr, data + i * size.x * size.y);
 
         if (TinyTIFFReader_wasError(tiffr)) {
-            QMessageBox::information(0, "Reading error", QObject::tr("error reading\n"));
+            // QMessageBox::information(0, "Reading error", QObject::tr("error reading\n"));
             return false;
         }
 
@@ -81,14 +78,14 @@ bool VoxelContainer::readImagesToFloat(const QStringList& fileNames) {
 }
 
 
-bool VoxelContainer::loadFromImages(const QStringList& fileNames) {
+bool VoxelContainer::loadFromImages(const std::vector<std::string>& fileNames) {
     clear();
     
     // Open first image
-    TinyTIFFReaderFile* tiffr = TinyTIFFReader_open(fileNames.first().toLocal8Bit().data());
+    TinyTIFFReaderFile* tiffr = TinyTIFFReader_open(fileNames.front().data());
 
     if (!tiffr) {
-        QMessageBox::information(0, "Reading error", "Failed to load image " + fileNames.first());
+        // QMessageBox::information(0, "Reading error", "Failed to load image " + fileNames.first());
         return false;
     }
 
@@ -118,7 +115,7 @@ bool VoxelContainer::loadFromImages(const QStringList& fileNames) {
                     readImagesToFloat<uint32_t>(fileNames);
                     break;
                 default:
-                    QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
+                    // QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
                     return false;
             }
 
@@ -138,7 +135,7 @@ bool VoxelContainer::loadFromImages(const QStringList& fileNames) {
                     readImagesToFloat<int32_t>(fileNames);
                     break;
                 default:
-                    QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
+                    // QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
                     return false;
             }
 
@@ -153,7 +150,7 @@ bool VoxelContainer::loadFromImages(const QStringList& fileNames) {
                     readImagesToFloat<float>(fileNames);
                     break;
                 default:
-                    QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
+                    // QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
                     return false;
             }
 
@@ -162,7 +159,7 @@ bool VoxelContainer::loadFromImages(const QStringList& fileNames) {
         }
 
         default:
-            QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
+            // QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
             return false;
     }
 
@@ -170,12 +167,13 @@ bool VoxelContainer::loadFromImages(const QStringList& fileNames) {
 }
 
 
-bool VoxelContainer::loadFromJson(const QString& fileName) {
+bool VoxelContainer::loadFromJson(const std::string& fileName) {
     // Open parameters file
-    QFile file(fileName);
+    QFile file(QString::fromStdString(fileName));
 
     if(!file.open(QIODevice::ReadOnly)) {
-        QMessageBox::information(0, "File opening error", file.errorString());
+        // QMessageBox::information(0, "File opening error", file.errorString());
+        return false;
     }
 
     // Parse JSON parameters
@@ -183,19 +181,19 @@ bool VoxelContainer::loadFromJson(const QString& fileName) {
     QJsonObject json = QJsonDocument::fromJson(file.readAll(), &error).object();
 
     if (error.error) {
-        qDebug() << "Error: " << error.errorString() << error.offset << error.error;
-        QMessageBox::information(0, "JSON parsing error", error.errorString());
+        // qDebug() << "Error: " << error.errorString() << error.offset << error.error;
+        // QMessageBox::information(0, "JSON parsing error", error.errorString());
         return false;
     }
 
     int height = json["height"].toInt();
-    QString format = json["format"].toString();
-    QString imgPath = fileName.left(fileName.lastIndexOf('/') + 1);
-    QStringList imgNames;
+    std::string format = json["format"].toString().toStdString();
+    std::string imgPath = fileName.substr(0, fileName.find_last_of('/') + 1);
+    std::vector<std::string> imgNames;
 
     // Create image files list
     for (int i = 0; i < height; ++i) {
-        imgNames.append(imgPath + QString::number(i) + format);
+        imgNames.push_back(imgPath + std::to_string(i) + format);
     }
 
     return loadFromImages(imgNames);

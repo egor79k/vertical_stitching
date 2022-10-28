@@ -108,14 +108,21 @@ void MainWindow::on_fileLoadButton_clicked() {
 
     if (fileNames.size() == 1 && fileNames.back().endsWith(".json")) {
         // Try to load from parameters
-        if (!partialScans.last()->loadFromJson(fileNames.back())) {
+        if (!partialScans.last()->loadFromJson(fileNames.back().toStdString())) {
             partialScans.removeLast();
             return;
         }
     }
     else {
+        // Convert QStringList to std::vector<std::string>
+        std::vector<std::string> fileNamesStd(fileNames.size());
+
+        for (int i = 0; i < fileNames.size(); ++i) {
+            fileNamesStd[i] = fileNames[i].toStdString();
+        }
+
         // Try to load from chosen images
-        if (!partialScans.last()->loadFromImages(fileNames)) {
+        if (!partialScans.last()->loadFromImages(fileNamesStd)) {
             partialScans.removeLast();
             return;
         }

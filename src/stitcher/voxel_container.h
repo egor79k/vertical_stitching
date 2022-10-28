@@ -1,28 +1,28 @@
 #ifndef VOXELCONTAINER_H
 #define VOXELCONTAINER_H
 
-#include <QStringList>
-//#include <QPixmap>
+#include <string>
+#include <vector>
 #include "tiff_image.h"
 
 
 class VoxelContainer {
 public:
     struct Vector3 {
-        qsizetype x;
-        qsizetype y;
-        qsizetype z;
+        size_t x;
+        size_t y;
+        size_t z;
 
-        qsizetype volume();
+        size_t volume();
     };
     
     VoxelContainer() = default;
-    VoxelContainer(const QStringList& fileNames);
+    VoxelContainer(const std::vector<std::string>& fileNames);
     VoxelContainer(float* _data, const Vector3& _size);
     ~VoxelContainer();
 
-    bool loadFromImages(const QStringList& fileNames);
-    bool loadFromJson(const QString &fileName);
+    bool loadFromImages(const std::vector<std::string>& fileNames);
+    bool loadFromJson(const std::string& fileName);
     void clear();
 
     bool isEmpty();
@@ -31,7 +31,7 @@ public:
     const float* getData() const;
 
     template<typename T>
-    void getSlice(TiffImage<T> &img, const int planeId, const int sliceId, bool fitToRange = true);
+    void getSlice(TiffImage<T>& img, const int planeId, const int sliceId, bool fitToRange = true);
 
 //    QPixmap getXSlice(const int sliceId); // Sagittal plane
 //    QPixmap getYSlice(const int sliceId); // Coronal plane
@@ -41,7 +41,7 @@ private:
     void fitToFloatRange(int64_t min, int64_t max);
 
     template<typename Tin>
-    bool readImagesToFloat(const QStringList &fileNames);
+    bool readImagesToFloat(const std::vector<std::string> &fileNames);
 
     Vector3 size = {0, 0, 0};
     float* data = nullptr;
@@ -51,7 +51,7 @@ private:
 
 
 template<typename T>
-void VoxelContainer::getSlice(TiffImage<T> &img, const int planeId, const int sliceId, bool fitToRange) {
+void VoxelContainer::getSlice(TiffImage<T>& img, const int planeId, const int sliceId, bool fitToRange) {
     if (data == nullptr) {
         img.clear();
         return;
