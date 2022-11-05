@@ -6,6 +6,7 @@
 #include <QMainWindow>
 #include <QGraphicsPixmapItem>
 #include <QList>
+#include <QWheelEvent>
 #include "stitcher.h"
 #include "voxel_container.h"
 
