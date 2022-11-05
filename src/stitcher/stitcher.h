@@ -9,6 +9,7 @@ class StitcherImpl {
 public:
     virtual std::shared_ptr<VoxelContainer> stitch(const VoxelContainer& scan_1, const VoxelContainer& scan_2) = 0;
 //    std::shared_ptr<VoxelContainer> stitch(const QList<std::shared_ptr<VoxelContainer>>& partialScans);
+    VoxelContainer::Range getStitchedRange(const VoxelContainer& scan_1, const VoxelContainer& scan_2);
 };
 
 

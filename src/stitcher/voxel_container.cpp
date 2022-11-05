@@ -1,10 +1,10 @@
+#include <algorithm>
+#include <fstream>
 #include <limits>
-#include <QFile>
-#include <QJsonObject>
-#include <QJsonDocument>
-#include <QJsonParseError>
-#include <tinytiffreader.hxx>
+#include <nlohmann/json.hpp>
 #include "voxel_container.h"
+
+using json = nlohmann::json;
 
 
 size_t VoxelContainer::Vector3::volume() {
@@ -33,137 +33,19 @@ VoxelContainer::~VoxelContainer() {
 }
 
 
-// void VoxelContainer::fitToFloatRange(int64_t min, int64_t max) {
-//     for (int z = 0; z < size.z; ++z) {
-//         for (int y = 0; y < size.y; ++y) {
-//             for (int x = 0; x < size.x; ++x) {
-//                 int id = z * size.x * size.y + y * size.x + x;
-//                 data[id] = (data[id] - min) / (max - min) * 255;
-//             }
-//         }
-//     }
-// }
-
-
-template<typename Tin>
-bool VoxelContainer::readImagesToFloat(const std::vector<std::string>& fileNames) {
-    for (int i = 0; i < size.z; ++i) {
-        // Open image
-        TinyTIFFReaderFile* tiffr = TinyTIFFReader_open(fileNames.at(i).data());
-
-        if (!tiffr) {
-            // QMessageBox::information(0, "Reading error", "Failed to load image " + fileNames.at(i));
-            return false;
-        }
-
-        uint32_t width = TinyTIFFReader_getWidth(tiffr);
-        uint32_t height = TinyTIFFReader_getHeight(tiffr);
-
-        // Check that current image size is the same
-        if (width != size.x || height != size.y) {
-            // QMessageBox::information(0, "Reading error", "Different size of image " + fileNames.at(i));
-            return false;
-        }
-
-        // Read iamge data to current slice
-        TinyTIFFReader_readFrame<Tin, float>(tiffr, data + i * size.x * size.y);
-
-        if (TinyTIFFReader_wasError(tiffr)) {
-            // QMessageBox::information(0, "Reading error", QObject::tr("error reading\n"));
-            return false;
-        }
-
-        TinyTIFFReader_close(tiffr);
-    }
-
-    return true;
-}
-
-
 bool VoxelContainer::loadFromImages(const std::vector<std::string>& fileNames) {
     clear();
     
-    // Open first image
-    TinyTIFFReaderFile* tiffr = TinyTIFFReader_open(fileNames.front().data());
-
-    if (!tiffr) {
-        // QMessageBox::information(0, "Reading error", "Failed to load image " + fileNames.first());
+    if (!TiffImage<float>::getSizeFromFile(fileNames.front().data(), size.x, size.y)) {
         return false;
     }
 
-    // Read first image parameters
-    size.x = TinyTIFFReader_getWidth(tiffr);
-    size.y = TinyTIFFReader_getHeight(tiffr);
     size.z = fileNames.size();
 
-    uint16_t sformat = TinyTIFFReader_getSampleFormat(tiffr);
-    uint16_t bits = TinyTIFFReader_getBitsPerSample(tiffr, 0);
+    readImages(fileNames);
 
-    TinyTIFFReader_close(tiffr);
-
-    data = new float[size.volume()];
-
-    // Determine the image data type, read it to float type and convert to common range
-    switch(sformat) {
-        case TINYTIFF_SAMPLEFORMAT_UINT: {
-            switch(bits) {
-                case 8:
-                    readImagesToFloat<uint8_t>(fileNames);
-                    break;
-                case 16:
-                    readImagesToFloat<uint16_t>(fileNames);
-                    break;
-                case 32:
-                    readImagesToFloat<uint32_t>(fileNames);
-                    break;
-                default:
-                    // QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
-                    return false;
-            }
-
-            range = {0, static_cast<float>(1 << bits - 1)};
-            break;
-        }
-
-        case TINYTIFF_SAMPLEFORMAT_INT: {
-            switch(bits) {
-                case 8:
-                    readImagesToFloat<int8_t>(fileNames);
-                    break;
-                case 16:
-                    readImagesToFloat<int16_t>(fileNames);
-                    break;
-                case 32:
-                    readImagesToFloat<int32_t>(fileNames);
-                    break;
-                default:
-                    // QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
-                    return false;
-            }
-
-            float range_val = 1 << (bits - 1) - 1;
-            range = {-range_val, range_val};
-            break;
-        }
-
-        case TINYTIFF_SAMPLEFORMAT_FLOAT: {
-            switch(bits) {
-                case 32:
-                    readImagesToFloat<float>(fileNames);
-                    break;
-                default:
-                    // QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
-                    return false;
-            }
-
-            range = {-1, 1};
-            break;
-        }
-
-        default:
-            // QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
-            return false;
-    }
+    auto rng = std::minmax_element(data, data + size.volume());
+    range = {*rng.first, *rng.second};
 
     return true;
 }
@@ -171,34 +53,35 @@ bool VoxelContainer::loadFromImages(const std::vector<std::string>& fileNames) {
 
 bool VoxelContainer::loadFromJson(const std::string& fileName) {
     // Open parameters file
-    QFile file(QString::fromStdString(fileName));
-
-    if(!file.open(QIODevice::ReadOnly)) {
-        // QMessageBox::information(0, "File opening error", file.errorString());
+    std::ifstream fs(fileName);
+    if(!fs) {
+        printf("Parse erroe");
         return false;
     }
 
     // Parse JSON parameters
-    QJsonParseError error;
-    QJsonObject json = QJsonDocument::fromJson(file.readAll(), &error).object();
-
-    if (error.error) {
-        // qDebug() << "Error: " << error.errorString() << error.offset << error.error;
-        // QMessageBox::information(0, "JSON parsing error", error.errorString());
+    json data = json::parse(fs, nullptr, false);
+    if (data.is_discarded()) {
+        printf("Parse erroe");
         return false;
     }
 
-    int height = json["height"].toInt();
-    std::string format = json["format"].toString().toStdString();
+    size.x = data["width"].get<int>();
+    size.y = data["depth"].get<int>();
+    size.z = data["height"].get<int>();
+    range.min = data["range_min"].get<float>();
+    range.max = data["range_max"].get<float>();
+    std::string format = data["format"].get<std::string>();
+
     std::string imgPath = fileName.substr(0, fileName.find_last_of('/') + 1);
     std::vector<std::string> imgNames;
 
     // Create image files list
-    for (int i = 0; i < height; ++i) {
+    for (int i = 0; i < size.z; ++i) {
         imgNames.push_back(imgPath + std::to_string(i) + format);
     }
 
-    return loadFromImages(imgNames);
+    return readImages(imgNames);
 }
 
 
@@ -229,6 +112,30 @@ const VoxelContainer::Vector3& VoxelContainer::getSize() const {
 
 const VoxelContainer::Range& VoxelContainer::getRange() const {
     return range;
+}
+
+
+bool VoxelContainer::readImages(const std::vector<std::string> &fileNames) {
+    data = new float[size.volume()];
+
+    if (data == nullptr) {
+        return false;
+    }
+
+    size_t width = 0;
+    size_t height = 0;
+
+    for (int i = 0; i < size.z; ++i) {
+        if (!TiffImage<float>::readFromFile(fileNames.at(i).data(), data + i * size.x * size.y, width, height)) {
+            return false;
+        }
+
+        if (width != size.x || height != size.y) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 

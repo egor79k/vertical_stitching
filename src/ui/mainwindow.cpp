@@ -1,5 +1,6 @@
-#include <QFileDialog>
 #include <QDebug>
+#include <QFileDialog>
+#include <QMessageBox>
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 #include "tiff_image.h"
@@ -106,23 +107,25 @@ void MainWindow::on_fileLoadButton_clicked() {
 
     partialScans.append(std::make_shared<VoxelContainer>());
 
+    // Convert QStringList to std::vector<std::string>
+    std::vector<std::string> fileNamesStd(fileNames.size());
+
+    for (int i = 0; i < fileNames.size(); ++i) {
+        fileNamesStd[i] = fileNames[i].toStdString();
+    }
+
     if (fileNames.size() == 1 && fileNames.back().endsWith(".json")) {
         // Try to load from parameters
-        if (!partialScans.last()->loadFromJson(fileNames.back().toStdString())) {
+        if (!partialScans.last()->loadFromJson(fileNamesStd.back())) {
             partialScans.removeLast();
+            QMessageBox::information(nullptr, "File error", QString("Unable to read JSON file '%1'").arg(fileNames.back()));
             return;
         }
     }
     else {
-        // Convert QStringList to std::vector<std::string>
-        std::vector<std::string> fileNamesStd(fileNames.size());
-
-        for (int i = 0; i < fileNames.size(); ++i) {
-            fileNamesStd[i] = fileNames[i].toStdString();
-        }
-
         // Try to load from chosen images
         if (!partialScans.last()->loadFromImages(fileNamesStd)) {
+            QMessageBox::information(nullptr, "File error", QString("Unable to read image files"));
             partialScans.removeLast();
             return;
         }

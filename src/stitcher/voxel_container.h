@@ -46,10 +46,7 @@ public:
 //    QPixmap getZSlice(const int sliceId); // Transverse plane
 
 private:
-    void fitToFloatRange(int64_t min, int64_t max);
-
-    template<typename Tin>
-    bool readImagesToFloat(const std::vector<std::string> &fileNames);
+    bool readImages(const std::vector<std::string> &fileNames);
 
     float* data = nullptr;
     Vector3 size = {0, 0, 0};

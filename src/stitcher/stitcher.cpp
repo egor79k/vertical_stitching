@@ -5,6 +5,14 @@
 //QSharedPointer<VoxelContainer> StitcherImpl::stitch(const QList<std::shared_ptr<VoxelContainer>>& partialScans) {}
 
 
+VoxelContainer::Range StitcherImpl::getStitchedRange(const VoxelContainer& scan_1, const VoxelContainer& scan_2) {
+    VoxelContainer::Range r1 = scan_1.getRange();
+    VoxelContainer::Range r2 = scan_2.getRange();
+
+    return {std::min(r1.min, r2.min), std::max(r1.max, r2.max)};
+}
+
+
 std::shared_ptr<VoxelContainer> SimpleStitcher::stitch(const VoxelContainer& scan_1, const VoxelContainer& scan_2) {
     VoxelContainer::Vector3 size_1 = scan_1.getSize();
     VoxelContainer::Vector3 size_2 = scan_2.getSize();
@@ -21,7 +29,7 @@ std::shared_ptr<VoxelContainer> SimpleStitcher::stitch(const VoxelContainer& sca
     memcpy(stitchedData, scan_1.getData(), size_1.volume() * sizeof(float));
     memcpy(stitchedData + size_1.volume(), scan_2.getData(), size_2.volume() * sizeof(float));
 
-    return std::make_shared<VoxelContainer>(stitchedData, stitchedSize, scan_1.getRange());
+    return std::make_shared<VoxelContainer>(stitchedData, stitchedSize, getStitchedRange(scan_1, scan_2));
 }
 
 
@@ -86,5 +94,5 @@ std::shared_ptr<VoxelContainer> OverlapDifferenceStitcher::stitch(const VoxelCon
     memcpy(stitchedData, scan_1.getData(), size_1.volume() * sizeof(float));
     memcpy(stitchedData + size_1.volume(), scan_2.getData() + offsetVolume, scanVolume * sizeof(float));
 
-    return std::make_shared<VoxelContainer>(stitchedData, stitchedSize, scan_1.getRange());
+    return std::make_shared<VoxelContainer>(stitchedData, stitchedSize, getStitchedRange(scan_1, scan_2));
 }
