@@ -11,7 +11,6 @@ class TiffImage
 public:
     TiffImage() {}
     TiffImage(const size_t width_, const size_t height_);
-    TiffImage(T* data_, const size_t width_, const size_t height_);
     TiffImage(const TiffImage& other);
     ~TiffImage();
 
@@ -31,21 +30,12 @@ private:
     T* data = nullptr;
     size_t width = 0;
     size_t height = 0;
-//    T range_min = 0;
-//    T range_max = 0;
 };
 
 
 template<typename T>
 TiffImage<T>::TiffImage(const size_t width_, const size_t height_) :
     data(new T[width_ * height_]),
-    width(width_),
-    height(height_) {}
-
-
-template<typename T>
-TiffImage<T>::TiffImage(T* data_, const size_t width_, const size_t height_) :
-    data(data_),
     width(width_),
     height(height_) {}
 
@@ -111,7 +101,6 @@ bool TiffImage<T>::readFromFile(const char* fileName, T* data, size_t& width, si
                     TinyTIFFReader_readFrame<uint32_t, T>(tiffr, data);
                     break;
                 default:
-                    // QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
                     TinyTIFFReader_close(tiffr);
                     return false;
             }
@@ -130,7 +119,6 @@ bool TiffImage<T>::readFromFile(const char* fileName, T* data, size_t& width, si
                     TinyTIFFReader_readFrame<int32_t, T>(tiffr, data);
                     break;
                 default:
-                    // QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
                     TinyTIFFReader_close(tiffr);
                     return false;
             }
@@ -143,7 +131,6 @@ bool TiffImage<T>::readFromFile(const char* fileName, T* data, size_t& width, si
                     TinyTIFFReader_readFrame<float, T>(tiffr, data);
                     break;
                 default:
-                    // QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
                     TinyTIFFReader_close(tiffr);
                     return false;
             }
@@ -151,7 +138,6 @@ bool TiffImage<T>::readFromFile(const char* fileName, T* data, size_t& width, si
         }
 
         default:
-            // QMessageBox::information(0, "Reading error", QObject::tr("datatype not convertible to float (type=%1, bitspersample=%2)\n").arg(sformat).arg(bits));
             TinyTIFFReader_close(tiffr);
             return false;
     }
