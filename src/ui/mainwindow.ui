@@ -59,38 +59,6 @@
      <string>Viewed slice:</string>
     </property>
    </widget>
-   <widget class="QSpinBox" name="partitionSpinBox">
-    <property name="geometry">
-     <rect>
-      <x>390</x>
-      <y>500</y>
-      <width>81</width>
-      <height>25</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Number of stitched scans&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-    </property>
-    <property name="minimum">
-     <number>2</number>
-    </property>
-    <property name="maximum">
-     <number>2</number>
-    </property>
-   </widget>
-   <widget class="QLabel" name="partitionSpinLabel">
-    <property name="geometry">
-     <rect>
-      <x>390</x>
-      <y>480</y>
-      <width>91</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Partition size:</string>
-    </property>
-   </widget>
    <widget class="QComboBox" name="slicePlaneBox">
     <property name="geometry">
      <rect>
@@ -172,6 +140,29 @@
     </property>
     <property name="transformationAnchor">
      <enum>QGraphicsView::AnchorUnderMouse</enum>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="algorithmBox">
+    <property name="geometry">
+     <rect>
+      <x>490</x>
+      <y>360</y>
+      <width>79</width>
+      <height>24</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_2">
+    <property name="geometry">
+     <rect>
+      <x>490</x>
+      <y>340</y>
+      <width>71</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Algorithm:</string>
     </property>
    </widget>
   </widget>

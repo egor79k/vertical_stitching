@@ -6,14 +6,20 @@
 #include "tiff_image.h"
 
 
-MainWindow::MainWindow(StitcherImpl* _stitcher, QWidget *parent) :
+MainWindow::MainWindow(AlgoList* stitchAlgos_, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    stitcher(_stitcher) {
+    stitchedScan(std::make_shared<VoxelContainer>()),
+    stitchAlgos(stitchAlgos_),
+    stitcher(stitchAlgos_->first().first) {
     ui->setupUi(this);
 
     displayScene.addItem(&currSliceItem);
     ui->graphicsView->setScene(&displayScene);
+
+    for (auto algo : *stitchAlgos) {
+        ui->algorithmBox->addItem(algo.second);
+    }
 
     connect(ui->scansList->model(),
         SIGNAL(rowsMoved(QModelIndex, int, int, QModelIndex, int)),
@@ -182,4 +188,10 @@ void MainWindow::on_removeScanButton_clicked()
         updateStitch();
     }
 
+}
+
+
+void MainWindow::on_algorithmBox_currentIndexChanged(int index) {
+    stitcher = stitchAlgos->at(index).first;
+    updateStitch();
 }

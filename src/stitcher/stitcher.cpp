@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cstring>
 #include <limits>
 #include "stitcher.h"
@@ -33,8 +34,8 @@ std::shared_ptr<VoxelContainer> SimpleStitcher::stitch(const VoxelContainer& sca
 }
 
 
-const int OverlapDifferenceStitcher::minOverlap = 2;
-const int OverlapDifferenceStitcher::maxOverlap = 10;
+const int OverlapDifferenceStitcher::minOverlap = 1;
+const int OverlapDifferenceStitcher::maxOverlap = 20;
 const int OverlapDifferenceStitcher::offsetStep = 1;
 
 
