@@ -55,14 +55,14 @@ bool VoxelContainer::loadFromJson(const std::string& fileName) {
     // Open parameters file
     std::ifstream fs(fileName);
     if(!fs) {
-        printf("Parse erroe");
+        printf("%s %s\n", "Unable to open file", fileName.data());
         return false;
     }
 
     // Parse JSON parameters
     json data = json::parse(fs, nullptr, false);
     if (data.is_discarded()) {
-        printf("Parse erroe");
+        printf("Parse error");
         return false;
     }
 

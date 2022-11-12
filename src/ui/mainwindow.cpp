@@ -1,9 +1,13 @@
+#include <fstream>
 #include <QDebug>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <nlohmann/json.hpp>
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 #include "tiff_image.h"
+
+using json = nlohmann::json;
 
 
 MainWindow::MainWindow(AlgoList* stitchAlgos_, QWidget *parent) :
@@ -88,6 +92,23 @@ void MainWindow::updateStitch() {
 }
 
 
+void MainWindow::appendScansList() {
+    auto scanShape = partialScans.last()->getSize();
+
+    // Add new scan to visible list
+    new QListWidgetItem(
+        "Scan " +
+        QString::number(partialScans.size()) +
+        "   " +
+        QString::number(scanShape.x) +
+        "x" +
+        QString::number(scanShape.y) +
+        "x" +
+        QString::number(scanShape.z),
+        ui->scansList);
+}
+
+
 void MainWindow::wheelEvent(QWheelEvent* event) {
     qreal scaleFactor = 0.9;
 
@@ -111,8 +132,6 @@ void MainWindow::on_fileLoadButton_clicked() {
         return;
     }
 
-    partialScans.append(std::make_shared<VoxelContainer>());
-
     // Convert QStringList to std::vector<std::string>
     std::vector<std::string> fileNamesStd(fileNames.size());
 
@@ -121,36 +140,68 @@ void MainWindow::on_fileLoadButton_clicked() {
     }
 
     if (fileNames.size() == 1 && fileNames.back().endsWith(".json")) {
-        // Try to load from parameters
-        if (!partialScans.last()->loadFromJson(fileNamesStd.back())) {
-            partialScans.removeLast();
-            QMessageBox::information(nullptr, "File error", QString("Unable to read JSON file '%1'").arg(fileNames.back()));
+        // Open parameters file
+        std::string& json_file = fileNamesStd.back();
+
+        std::ifstream fs(json_file);
+
+        if(!fs) {
+            QMessageBox::information(nullptr, "File error", QString("Unable to read JSON file '%1'").arg(json_file.data()));
             return;
+        }
+
+        // Parse JSON parameters
+        json data = json::parse(fs, nullptr, false);
+
+        if (data.is_discarded()) {
+            QMessageBox::information(nullptr, "Parse error", QString("Unable to parse JSON file '%1'").arg(json_file.data()));
+            return;
+        }
+
+        if (data.contains("parts_num")) {
+            // Try to load several reconstructions from common parameters file
+            int parts_num = data["parts_num"].get<int>();
+            std::string param_path = json_file.substr(0, json_file.find_last_of('/') + 1);
+
+            for (int part_id = 0; part_id < parts_num; ++part_id) {
+                // Try to load part reconstruction from parameters
+                partialScans.append(std::make_shared<VoxelContainer>());
+                std::string part_info_file = param_path + std::to_string(part_id) + "/info.json";
+
+                if (!partialScans.last()->loadFromJson(part_info_file)) {
+                    partialScans.removeLast();
+                    QMessageBox::information(nullptr, "Load error", QString("Unable to load from JSON file '%1'").arg(part_info_file.data()));
+                    return;
+                }
+
+                appendScansList();
+            }
+        }
+        else {
+            // Try to load reconstruction from parameters
+            partialScans.append(std::make_shared<VoxelContainer>());
+
+            if (!partialScans.last()->loadFromJson(json_file)) {
+                partialScans.removeLast();
+                QMessageBox::information(nullptr, "Load error", QString("Unable to load from JSON file '%1'").arg(json_file.data()));
+                return;
+            }
+
+            appendScansList();
         }
     }
     else {
-        // Try to load from chosen images
+        // Try to load reconstruction from chosen images
+        partialScans.append(std::make_shared<VoxelContainer>());
+
         if (!partialScans.last()->loadFromImages(fileNamesStd)) {
-            QMessageBox::information(nullptr, "File error", QString("Unable to read image files"));
             partialScans.removeLast();
+            QMessageBox::information(nullptr, "Load error", QString("Unable to load from image files"));
             return;
         }
+
+        appendScansList();
     }
-
-
-    auto scanShape = partialScans.last()->getSize();
-
-    // Add new scan to visible list
-    new QListWidgetItem(
-        "Scan " +
-        QString::number(partialScans.size()) +
-        "   " +
-        QString::number(scanShape.x) +
-        "x" +
-        QString::number(scanShape.y) +
-        "x" +
-        QString::number(scanShape.z),
-        ui->scansList);
 
     updateStitch();
 }
