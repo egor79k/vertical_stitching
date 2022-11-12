@@ -13,14 +13,14 @@ public:
         size_t y;
         size_t z;
 
-        size_t volume();
+        size_t volume() const;
     };
 
     struct Range {
         float min;
         float max;
 
-        float fit(float val, const Range nr);
+        float fit(float val, const Range nr) const;
     };
     
     VoxelContainer() = default;
@@ -39,7 +39,7 @@ public:
     const Range& getRange() const;
 
     template<typename T>
-    void getSlice(TiffImage<T>& img, const int planeId, const int sliceId, bool fitToRange = true);
+    void getSlice(TiffImage<T>& img, const int planeId, const int sliceId, bool fitToRange = true) const;
 
 //    QPixmap getXSlice(const int sliceId); // Sagittal plane
 //    QPixmap getYSlice(const int sliceId); // Coronal plane
@@ -55,7 +55,7 @@ private:
 
 
 template<typename T>
-void VoxelContainer::getSlice(TiffImage<T>& img, const int planeId, const int sliceId, bool fitToRange) {
+void VoxelContainer::getSlice(TiffImage<T>& img, const int planeId, const int sliceId, bool fitToRange) const {
     if (data == nullptr) {
         img.clear();
         return;

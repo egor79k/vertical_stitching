@@ -1,5 +1,8 @@
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 find_package(TinyTIFF REQUIRED)
+find_package(OpenCV REQUIRED)
+
+include_directories(${OpenCV_INCLUDE_DIRS})
 
 add_library(stitcher
     stitcher.cpp
@@ -9,4 +12,4 @@ add_library(stitcher
     tiff_image.h
     )
 
-target_link_libraries(stitcher PRIVATE Qt5::Widgets TinyTIFF)
+target_link_libraries(stitcher PRIVATE Qt5::Widgets TinyTIFF ${OpenCV_LIBS})

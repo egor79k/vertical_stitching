@@ -7,12 +7,12 @@
 using json = nlohmann::json;
 
 
-size_t VoxelContainer::Vector3::volume() {
+size_t VoxelContainer::Vector3::volume() const {
     return x * y * z;
 }
 
 
-float VoxelContainer::Range::fit(float val, const Range nr) {
+float VoxelContainer::Range::fit(float val, const Range nr) const {
     return (val - min) / (max - min) * (nr.max - nr.min) + nr.min;
 }
 

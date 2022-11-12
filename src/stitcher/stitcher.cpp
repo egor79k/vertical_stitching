@@ -1,6 +1,8 @@
 #include <iostream>
 #include <cstring>
 #include <limits>
+#include <vector>
+#include <opencv2/opencv.hpp>
 #include "stitcher.h"
 
 //QSharedPointer<VoxelContainer> StitcherImpl::stitch(const QList<std::shared_ptr<VoxelContainer>>& partialScans) {}
@@ -96,4 +98,43 @@ std::shared_ptr<VoxelContainer> OverlapDifferenceStitcher::stitch(const VoxelCon
     memcpy(stitchedData + size_1.volume(), scan_2.getData() + offsetVolume, scanVolume * sizeof(float));
 
     return std::make_shared<VoxelContainer>(stitchedData, stitchedSize, getStitchedRange(scan_1, scan_2));
+}
+
+
+std::shared_ptr<VoxelContainer> SIFT2DStitcher::stitch(const VoxelContainer& scan_1, const VoxelContainer& scan_2) {
+    VoxelContainer::Vector3 size_1 = scan_1.getSize();
+    VoxelContainer::Vector3 size_2 = scan_2.getSize();
+
+    TiffImage<uint8_t> slice_img_1;
+    TiffImage<uint8_t> slice_img_2;
+
+    scan_1.getSlice<uint8_t>(slice_img_1, 2, size_1.z - 1, true);
+    scan_2.getSlice<uint8_t>(slice_img_2, 2, 0, true);
+
+    cv::Mat_<unsigned char> slice_1(size_1.x, size_1.y, slice_img_1.getData());
+    cv::Mat_<unsigned char> slice_2(size_2.x, size_2.y, slice_img_2.getData());
+    
+    // cv::namedWindow("Display Image", cv::WINDOW_AUTOSIZE );
+    // cv::imshow("Display Image", slice_1);
+    // int key = -1;
+    // while (key != 'q') key = cv::waitKeyEx(100);
+    // cv::imshow("Display Image", slice_2);
+    // key = -1;
+    // while (key != 'q') key = cv::waitKeyEx(100);
+    // cv::destroyAllWindows();
+
+    std::vector<cv::KeyPoint> keypoints_1, keypoints_2;
+    cv::Mat descriptor_1, descriptor_2;
+    cv::BFMatcher matcher;
+    std::vector<cv::DMatch> matches;
+    cv::Ptr<cv::SIFT> sift = cv::SIFT::create();
+
+    sift->detectAndCompute(slice_1, cv::Mat(), keypoints_1, descriptor_1);
+    sift->detectAndCompute(slice_2, cv::Mat(), keypoints_2, descriptor_2);
+
+    matcher.match(descriptor_1, descriptor_2, matches);
+
+    std::cout << matches.size() << std::endl;
+
+    return std::make_shared<VoxelContainer>();
 }
