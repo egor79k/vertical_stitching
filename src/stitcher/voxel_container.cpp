@@ -46,6 +46,7 @@ bool VoxelContainer::loadFromImages(const std::vector<std::string>& fileNames) {
 
     auto rng = std::minmax_element(data, data + size.volume());
     range = {*rng.first, *rng.second};
+    printf("Range: %f, %f\n", range.min, range.max);
 
     return true;
 }

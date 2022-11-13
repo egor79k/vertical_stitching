@@ -36,8 +36,8 @@ std::shared_ptr<VoxelContainer> SimpleStitcher::stitch(const VoxelContainer& sca
 }
 
 
-const int OverlapDifferenceStitcher::minOverlap = 1;
-const int OverlapDifferenceStitcher::maxOverlap = 20;
+const int OverlapDifferenceStitcher::minOverlap = 5;
+const int OverlapDifferenceStitcher::maxOverlap = 30;
 const int OverlapDifferenceStitcher::offsetStep = 1;
 
 
@@ -81,7 +81,7 @@ float OverlapDifferenceStitcher::countDifference(const VoxelContainer& scan_1, c
         diff += (data_1[i + scanOffset] - data_2[i]) * (data_1[i + scanOffset] - data_2[i]);
     }
 
-    return diff;
+    return diff / overlap;
 }
 
 
@@ -91,18 +91,23 @@ int OverlapDifferenceStitcher::determineOptimalOverlap(const VoxelContainer& sca
 
     for (int overlap = minOverlap; overlap < maxOverlap; overlap += offsetStep) {
         float currDiff = countDifference(scan_1, scan_2, overlap);
+        
         if (currDiff < minDiff) {
             minDiff = currDiff;
             optimalOverlap = overlap;
         }
+
+        printf("%s %i %s %f\n", "Overlap:", overlap, "diff:", currDiff);
     }
+
+    printf("%s %i\n", "Optimal overlap:", optimalOverlap);
 
     return optimalOverlap;
 }
 
 
-const int SIFT2DStitcher::minOverlap = 1;
-const int SIFT2DStitcher::maxOverlap = 20;
+const int SIFT2DStitcher::minOverlap = 5;
+const int SIFT2DStitcher::maxOverlap = 30;
 const int SIFT2DStitcher::offsetStep = 1;
 
 
