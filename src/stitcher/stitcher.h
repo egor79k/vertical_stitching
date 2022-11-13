@@ -36,6 +36,14 @@ private:
 class SIFT2DStitcher : public StitcherImpl {
 public:
     std::shared_ptr<VoxelContainer> stitch(const VoxelContainer& scan_1, const VoxelContainer& scan_2) override;
+
+private:
+    // void filterMatches(const std::vector<cv::DMatch>& matches, std::vector<cv::DMatch>& goodMatches);
+    int determineOptimalOverlap(const VoxelContainer& scan_1, const VoxelContainer& scan_2);
+
+    static const int minOverlap;
+    static const int maxOverlap;
+    static const int offsetStep;
 };
 
 #endif // STITCHER_H
