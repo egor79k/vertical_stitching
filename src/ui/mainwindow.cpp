@@ -1,4 +1,5 @@
 #include <fstream>
+#include <iterator>
 #include <QDebug>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -72,15 +73,12 @@ void MainWindow::updateDisplay(int plane, int slice) {
 
 
 void MainWindow::updateStitch() {
-    if (partialScans.size() > 1) {
-        stitchedScan = stitcher->stitch(*partialScans[0], *partialScans[1]);
+    if (partialScans.size() > 0) {
+        stitchedScan = stitcher->stitch(partialScans);
 
         if (stitchedScan == nullptr) {
             return;
         }
-    }
-    else if (partialScans.size() == 1) {
-        stitchedScan = partialScans[0];
     }
     else {
         stitchedScan->clear();
@@ -93,7 +91,7 @@ void MainWindow::updateStitch() {
 
 
 void MainWindow::appendScansList() {
-    auto scanShape = partialScans.last()->getSize();
+    auto scanShape = partialScans.back()->getSize();
 
     // Add new scan to visible list
     new QListWidgetItem(
@@ -165,11 +163,11 @@ void MainWindow::on_fileLoadButton_clicked() {
 
             for (int part_id = 0; part_id < parts_num; ++part_id) {
                 // Try to load part reconstruction from parameters
-                partialScans.append(std::make_shared<VoxelContainer>());
+                partialScans.emplace_back(std::make_shared<VoxelContainer>());
                 std::string part_info_file = param_path + std::to_string(part_id) + "/info.json";
 
-                if (!partialScans.last()->loadFromJson(part_info_file)) {
-                    partialScans.removeLast();
+                if (!partialScans.back()->loadFromJson(part_info_file)) {
+                    partialScans.pop_back();
                     QMessageBox::information(nullptr, "Load error", QString("Unable to load from JSON file '%1'").arg(part_info_file.data()));
                     return;
                 }
@@ -179,10 +177,10 @@ void MainWindow::on_fileLoadButton_clicked() {
         }
         else {
             // Try to load reconstruction from parameters
-            partialScans.append(std::make_shared<VoxelContainer>());
+            partialScans.emplace_back(std::make_shared<VoxelContainer>());
 
-            if (!partialScans.last()->loadFromJson(json_file)) {
-                partialScans.removeLast();
+            if (!partialScans.back()->loadFromJson(json_file)) {
+                partialScans.pop_back();
                 QMessageBox::information(nullptr, "Load error", QString("Unable to load from JSON file '%1'").arg(json_file.data()));
                 return;
             }
@@ -192,10 +190,10 @@ void MainWindow::on_fileLoadButton_clicked() {
     }
     else {
         // Try to load reconstruction from chosen images
-        partialScans.append(std::make_shared<VoxelContainer>());
+        partialScans.emplace_back(std::make_shared<VoxelContainer>());
 
-        if (!partialScans.last()->loadFromImages(fileNamesStd)) {
-            partialScans.removeLast();
+        if (!partialScans.back()->loadFromImages(fileNamesStd)) {
+            partialScans.pop_back();
             QMessageBox::information(nullptr, "Load error", QString("Unable to load from image files"));
             return;
         }
@@ -223,7 +221,10 @@ void MainWindow::on_scansListrowsMoved(const QModelIndex& parent, int start, int
         --row;
     }
 
-    partialScans.move(start, row);
+    auto temp = partialScans[start];
+    partialScans.erase(std::next(partialScans.begin(), start));
+    partialScans.insert(std::next(partialScans.begin(), row), temp);
+    // partialScans.move(start, row);
 
     updateStitch();
 }
@@ -235,7 +236,7 @@ void MainWindow::on_removeScanButton_clicked()
 
     if (currentScanId >= 0) {
         ui->scansList->takeItem(currentScanId);
-        partialScans.removeAt(currentScanId);
+        partialScans.erase(std::next(partialScans.begin(), currentScanId));
         updateStitch();
     }
 

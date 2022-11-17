@@ -1,11 +1,19 @@
 #include <iostream>
 #include <cstring>
 #include <limits>
-#include <vector>
 #include <opencv2/opencv.hpp>
 #include "stitcher.h"
 
-//QSharedPointer<VoxelContainer> StitcherImpl::stitch(const QList<std::shared_ptr<VoxelContainer>>& partialScans) {}
+
+std::shared_ptr<VoxelContainer> StitcherImpl::stitch(const std::vector<std::shared_ptr<VoxelContainer>>& partialScans) {
+    std::shared_ptr<VoxelContainer> result = partialScans[0];
+
+    for (int scan_id = 1; scan_id < partialScans.size(); ++scan_id) {
+        result = stitch(*result, *partialScans[scan_id]);
+    }
+
+    return result;
+}
 
 
 VoxelContainer::Range StitcherImpl::getStitchedRange(const VoxelContainer& scan_1, const VoxelContainer& scan_2) {
@@ -31,7 +39,7 @@ std::shared_ptr<VoxelContainer> SimpleStitcher::stitch(const VoxelContainer& sca
     float* stitchedData = new float[stitchedSize.volume()];
 
     memcpy(stitchedData, scan_1.getData(), size_1.volume() * sizeof(float));
-    memset(stitchedData + size_1.volume(), 0, gap.volume());
+    memset(stitchedData + size_1.volume(), 0, gap.volume() * sizeof(float));
     memcpy(stitchedData + size_1.volume() + gap.volume(), scan_2.getData(), size_2.volume() * sizeof(float));
 
     return std::make_shared<VoxelContainer>(stitchedData, stitchedSize, getStitchedRange(scan_1, scan_2));

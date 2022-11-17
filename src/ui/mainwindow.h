@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <memory>
+#include <vector>
 #include <QGraphicsScene>
 #include <QMainWindow>
 #include <QGraphicsPixmapItem>
@@ -49,7 +50,7 @@ private:
     QGraphicsScene displayScene;
     QGraphicsPixmapItem currSliceItem;
 
-    QList<std::shared_ptr<VoxelContainer>> partialScans;
+    std::vector<std::shared_ptr<VoxelContainer>> partialScans;
     std::shared_ptr<VoxelContainer> stitchedScan;
 
     std::shared_ptr<StitcherImpl> stitcher;
