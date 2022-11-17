@@ -246,3 +246,20 @@ void MainWindow::on_algorithmBox_currentIndexChanged(int index) {
     stitcher = stitchAlgos->at(index).first;
     updateStitch();
 }
+
+void MainWindow::on_actionSave_triggered() {
+    QMessageBox::information(nullptr, "Save error", QString("Not implemented yet!"));
+}
+
+void MainWindow::on_actionSaveSlice_triggered() {
+    QString fileName = QFileDialog::getSaveFileName(this,
+        "Save file",
+        QDir::currentPath(),
+        "All files (*.*);;Images (*.png *.tiff *.jpg)");
+
+    int plane = ui->slicePlaneBox->currentIndex();
+    int slice = ui->sliceSpinBox->value();
+    TiffImage<uint8_t> img;
+    stitchedScan->getSlice<uint8_t>(img, plane, slice, true);
+    img.save(fileName.toStdString().c_str());
+}

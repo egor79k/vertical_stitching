@@ -1,8 +1,10 @@
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
+find_package(OpenCV REQUIRED)
+
+include_directories(${OpenCV_INCLUDE_DIRS})
+include_directories(stitcher)
 
 add_subdirectory(stitcher)
-
-include_directories(stitcher)
 
 add_executable(vertical_stitching
     main.cpp

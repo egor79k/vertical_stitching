@@ -33,6 +33,9 @@ private slots:
     void on_scansListrowsMoved(const QModelIndex& parent, int start, int end, const QModelIndex& destination, int row);
     void on_removeScanButton_clicked();
     void on_algorithmBox_currentIndexChanged(int index);
+    // Menu bar
+    void on_actionSave_triggered();
+    void on_actionSaveSlice_triggered();
 
 private:
     void updateSliceBounds(int plane);

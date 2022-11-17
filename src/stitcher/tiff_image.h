@@ -3,6 +3,7 @@
 
 
 #include <tinytiffreader.hxx>
+#include <opencv2/opencv.hpp>
 
 
 template<typename T>
@@ -19,6 +20,7 @@ public:
 
     void clear();
     void resize(const size_t new_width, const size_t new_height);
+    bool save(const char* fileName) const;
 
     T* getData();
     const T* getData() const;
@@ -170,6 +172,13 @@ void TiffImage<T>::resize(const size_t new_width, const size_t new_height) {
     width = new_width;
     height = new_height;
     data = new T[width * height];
+}
+
+
+template<typename T>
+bool TiffImage<T>::save(const char *fileName) const {
+    cv::Mat_<T> img(height, width, data);
+    return cv::imwrite(fileName, img);
 }
 
 
