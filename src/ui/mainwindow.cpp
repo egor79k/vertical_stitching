@@ -258,6 +258,10 @@ void MainWindow::on_actionSaveSlice_triggered() {
         QDir::currentPath(),
         "All files (*.*);;Images (*.png *.tiff *.jpg)");
 
+    if (fileName.isEmpty()) {
+        return;
+    }
+
     int plane = ui->slicePlaneBox->currentIndex();
     int slice = ui->sliceSpinBox->value();
     TiffImage<uint8_t> img;
