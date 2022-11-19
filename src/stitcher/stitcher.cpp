@@ -35,14 +35,20 @@ std::shared_ptr<VoxelContainer> SimpleStitcher::stitch(const VoxelContainer& sca
     }
 
     VoxelContainer::Vector3 stitchedSize = {size_1.x, size_1.y, size_1.z + size_2.z + gap.z};
-
+    VoxelContainer::Range stitchedRange = getStitchedRange(scan_1, scan_2);
     float* stitchedData = new float[stitchedSize.volume()];
 
     memcpy(stitchedData, scan_1.getData(), size_1.volume() * sizeof(float));
-    memset(stitchedData + size_1.volume(), 0, gap.volume() * sizeof(float));
+
+    // Fill the gap with black
+    float* gapData = stitchedData + size_1.volume();
+    for (int i = 0; i < gap.volume(); ++ i) {
+        gapData[i] = stitchedRange.min;
+    }
+
     memcpy(stitchedData + size_1.volume() + gap.volume(), scan_2.getData(), size_2.volume() * sizeof(float));
 
-    return std::make_shared<VoxelContainer>(stitchedData, stitchedSize, getStitchedRange(scan_1, scan_2));
+    return std::make_shared<VoxelContainer>(stitchedData, stitchedSize, stitchedRange);
 }
 
 
