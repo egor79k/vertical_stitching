@@ -171,9 +171,79 @@ void filterMatches(const std::vector<cv::DMatch>& matches, std::vector<cv::DMatc
             goodMatches.push_back(matches[i]);
         }
     }
+
+    // goodMatches = matches;
 }
 
 
+int SIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const VoxelContainer& scan_2) {
+    int totalMatches = 0;
+    float distancesSum = 0;
+
+    VoxelContainer::Vector3 size_1 = scan_1.getSize();
+    VoxelContainer::Vector3 size_2 = scan_2.getSize();
+
+    TiffImage<uint8_t> sliceImg_1;
+    TiffImage<uint8_t> sliceImg_2;
+
+    std::vector<cv::KeyPoint> keypoints_1, keypoints_2;
+    cv::Mat descriptor_1, descriptor_2;
+    cv::BFMatcher matcher;
+    std::vector<cv::DMatch> matches, goodMatches;
+    cv::Ptr<cv::SIFT> sift = cv::SIFT::create();
+
+    for (int slice_id = 10; slice_id < size_1.x; slice_id += 5) {
+        scan_1.getSlice<uint8_t>(sliceImg_1, 0, slice_id, true);
+        cv::Mat_<unsigned char> slice_1(maxOverlap, size_1.y, sliceImg_1.getData() + (size_1.z - maxOverlap) * size_1.y);
+        sift->detectAndCompute(slice_1, cv::Mat(), keypoints_1, descriptor_1);
+
+        cv::Mat rgbSlice_1, rgbSlice_2, match_result;
+        cv::cvtColor(slice_1, rgbSlice_1, cv::COLOR_GRAY2RGB);
+
+        scan_2.getSlice<uint8_t>(sliceImg_2, 0, slice_id, true);
+        cv::Mat_<unsigned char> slice_2(maxOverlap, size_2.y, sliceImg_2.getData());
+        sift->detectAndCompute(slice_2, cv::Mat(), keypoints_2, descriptor_2);
+
+        matcher.match(descriptor_1, descriptor_2, matches);
+        filterMatches(matches, goodMatches);
+
+        size_t goodMatchesNum = goodMatches.size();
+
+        totalMatches += goodMatchesNum;
+        for (int i = 0; i < goodMatchesNum; ++i) {
+            auto kp_1 = keypoints_1[goodMatches[i].queryIdx].pt;
+            auto kp_2 = keypoints_2[goodMatches[i].trainIdx].pt;
+            float distance = (maxOverlap - kp_1.y + kp_2.y);
+            printf("distance: %f\n", distance);
+            distancesSum += distance;
+        }
+
+        printf("%s %lu %s %lu\n", "Total matches:", matches.size(), "good matches:", goodMatchesNum);
+
+        cv::cvtColor(slice_2, rgbSlice_2, cv::COLOR_GRAY2RGB);
+        
+        cv::namedWindow("Display Matches", cv::WINDOW_AUTOSIZE);
+        cv::drawMatches(rgbSlice_1, keypoints_1, rgbSlice_2, keypoints_2, goodMatches, match_result);
+        cv::imshow("Display Matches", match_result);
+        int key = -1;
+        while (key != 'q') key = cv::waitKeyEx(100);
+
+        keypoints_2.clear();
+        matches.clear();
+        goodMatches.clear();
+    }
+
+    cv::destroyAllWindows();
+
+    int optimalOverlap = distancesSum / totalMatches;
+
+    printf("%s %i %s %f/%i\n", "Optimal overlap:", optimalOverlap, "DST:", distancesSum, totalMatches);
+
+    return optimalOverlap;
+}
+
+
+/*
 int SIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const VoxelContainer& scan_2) {
     float maxMatchesNum = 0;
     int optimalOverlap = 0;
@@ -232,4 +302,4 @@ int SIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const 
     printf("%s %i\n", "Optimal overlap:", optimalOverlap);
 
     return optimalOverlap;
-}
+}*/
