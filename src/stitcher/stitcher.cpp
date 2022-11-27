@@ -122,12 +122,12 @@ int OverlapDifferenceStitcher::determineOptimalOverlap(const VoxelContainer& sca
 }
 
 
-const int SIFT2DStitcher::minOverlap = 5;
-const int SIFT2DStitcher::maxOverlap = 30;
-const int SIFT2DStitcher::offsetStep = 1;
+const int CVSIFT2DStitcher::minOverlap = 5;
+const int CVSIFT2DStitcher::maxOverlap = 30;
+const int CVSIFT2DStitcher::offsetStep = 1;
 
 
-std::shared_ptr<VoxelContainer> SIFT2DStitcher::stitch(const VoxelContainer& scan_1, const VoxelContainer& scan_2) {
+std::shared_ptr<VoxelContainer> CVSIFT2DStitcher::stitch(const VoxelContainer& scan_1, const VoxelContainer& scan_2) {
     VoxelContainer::Vector3 size_1 = scan_1.getSize();
     VoxelContainer::Vector3 size_2 = scan_2.getSize();
 
@@ -176,7 +176,7 @@ void filterMatches(const std::vector<cv::DMatch>& matches, std::vector<cv::DMatc
 }
 
 
-int SIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const VoxelContainer& scan_2) {
+int CVSIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const VoxelContainer& scan_2) {
     int totalMatches = 0;
     float distancesSum = 0;
 

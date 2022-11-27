@@ -34,7 +34,7 @@ private:
 };
 
 
-class SIFT2DStitcher : public StitcherImpl {
+class CVSIFT2DStitcher : public StitcherImpl {
 public:
     std::shared_ptr<VoxelContainer> stitch(const VoxelContainer& scan_1, const VoxelContainer& scan_2) override;
 

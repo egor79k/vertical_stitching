@@ -5,10 +5,8 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 add_library(stitcher
     stitcher.cpp
-    stitcher.h
+    sift_2d_stitcher.cpp
     voxel_container.cpp
-    voxel_container.h
-    tiff_image.h
     )
 
 target_link_libraries(stitcher TinyTIFF ${OpenCV_LIBS})
