@@ -1,3 +1,4 @@
+#include <cmath>
 #include "sift_2d_stitcher.h"
 
 
@@ -12,14 +13,39 @@ std::shared_ptr<VoxelContainer> SIFT2DStitcher::stitch(const VoxelContainer& sca
 
 
 void SIFT2DStitcher::detect(cv::Mat img) {
-    cv::namedWindow("Display Keypoints", cv::WINDOW_AUTOSIZE);
-    cv::normalize(img, img, 0, 1, cv::NORM_MINMAX);
-    cv::imshow("Display Keypoints", img);
-    cv::waitKey(0);
-    cv::GaussianBlur(img, img, cv::Size(5, 5), 0, 0);
-    cv::imshow("Display Keypoints", img);
-    cv::waitKey(0);
-    cv::destroyAllWindows();
+    // cv::namedWindow("Display Keypoints", cv::WINDOW_AUTOSIZE);
+    // cv::normalize(img, img, 0, 1, cv::NORM_MINMAX);
+    // cv::imshow("Display Keypoints", img);
+    // cv::waitKey(0);
+    // cv::GaussianBlur(img, img, cv::Size(5, 5), 0, 0);
+    // cv::imshow("Display Keypoints", img);
+    // cv::waitKey(0);
+    // cv::destroyAllWindows();
 
-    // std::vector<cv::Mat> gaussians;
+    const int octaves_num = 4;
+    const double scale_levels_num = 5;
+    double sigma = 1.6;
+    const double k = std::pow(std::sqrt(2), 1 / scale_levels_num);
+    
+    std::vector<std::vector<cv::Mat>> gaussians(octaves_num);
+
+    for (int i = 0; i < octaves_num; ++i) {
+        gaussians[i].resize(scale_levels_num);
+    }
+
+    cv::namedWindow("Display Keypoints", cv::WINDOW_AUTOSIZE);
+
+    for (int octave = 0; octave < octaves_num; ++octave) {
+        for (int scale_level = 0; scale_level < scale_levels_num; ++scale_level) {
+            printf("%s %i %s %i\n", "Octave:", octave, "Scale level:", scale_level);
+            sigma *= k;
+            cv::GaussianBlur(img, gaussians[octave][scale_level], cv::Size(5, 5), sigma);
+            cv::normalize(gaussians[octave][scale_level], gaussians[octave][scale_level], 0, 1, cv::NORM_MINMAX);
+            cv::imshow("Display Keypoints", gaussians[octave][scale_level]);
+            int key = -1;
+            while (key != 'q') key = cv::waitKeyEx(100);
+        }
+    }
+
+    cv::destroyAllWindows();
 }

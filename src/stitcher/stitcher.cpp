@@ -10,6 +10,9 @@ std::shared_ptr<VoxelContainer> StitcherImpl::stitch(const std::vector<std::shar
 
     for (int scan_id = 1; scan_id < partialScans.size(); ++scan_id) {
         result = stitch(*result, *partialScans[scan_id]);
+        if (result == nullptr) {
+            return nullptr;
+        }
     }
 
     return result;
