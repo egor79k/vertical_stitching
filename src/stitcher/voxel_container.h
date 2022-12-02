@@ -69,6 +69,7 @@ void VoxelContainer::getSlice(TiffImage<T>& img, const int planeId, const int sl
     }
 
     switch (planeId) {
+        // Sagittal plane
         case 0: {
             img.resize(size.y, size.z);
             T* bits = img.getData();
@@ -82,6 +83,7 @@ void VoxelContainer::getSlice(TiffImage<T>& img, const int planeId, const int sl
             return;
         }
 
+        // Coronal plane
         case 1: {
             img.resize(size.x, size.z);
             T* bits = img.getData();
@@ -95,6 +97,7 @@ void VoxelContainer::getSlice(TiffImage<T>& img, const int planeId, const int sl
             return;
         }
 
+        // Transverse plane
         case 2: {
             img.resize(size.x, size.y);
             T* bits = img.getData();
@@ -102,6 +105,34 @@ void VoxelContainer::getSlice(TiffImage<T>& img, const int planeId, const int sl
             for (int y = 0; y < size.y; ++y) {
                 for (int x = 0; x < size.x; ++x) {
                     bits[y * size.x + x] = range.fit(data[sliceId * size.x * size.y + y * size.x + x], newRange);
+                }
+            }
+
+            return;
+        }
+
+        // Diagonal plane
+        case 3: {
+            img.resize(size.y, size.z);
+            T* bits = img.getData();
+
+            for (int z = 0; z < size.z; ++z) {
+                for (int y = 0; y < size.y; ++y) {
+                    bits[z * size.y + y] = range.fit(data[z * size.x * size.y + y * size.x + y], newRange);
+                }
+            }
+
+            return;
+        }
+
+        // Diagonal plane
+        case 4: {
+            img.resize(size.x, size.z);
+            T* bits = img.getData();
+
+            for (int z = 0; z < size.z; ++z) {
+                for (int x = 0; x < size.x; ++x) {
+                    bits[z * size.x + x] = range.fit(data[z * size.x * size.y + x * size.y + size.x - x - 1], newRange);
                 }
             }
 

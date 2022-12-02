@@ -86,6 +86,16 @@
       <string>Transverse</string>
      </property>
     </item>
+    <item>
+     <property name="text">
+      <string>Diagonal 1</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Diagonal 2</string>
+     </property>
+    </item>
    </widget>
    <widget class="QLabel" name="label">
     <property name="geometry">

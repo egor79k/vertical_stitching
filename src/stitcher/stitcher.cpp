@@ -194,17 +194,19 @@ int CVSIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, cons
     cv::BFMatcher matcher;
     std::vector<cv::DMatch> matches, goodMatches;
     cv::Ptr<cv::SIFT> sift = cv::SIFT::create();
+    std::vector<int> planes = {0, 1, 3, 4};
 
-    for (int slice_id = 10; slice_id < size_1.x; slice_id += 5) {
-        scan_1.getSlice<uint8_t>(sliceImg_1, 0, slice_id, true);
-        cv::Mat_<unsigned char> slice_1(maxOverlap, size_1.y, sliceImg_1.getData() + (size_1.z - maxOverlap) * size_1.y);
+    for (int plane : planes) {
+        int slice_id = size_1.x / 2;
+        scan_1.getSlice<uint8_t>(sliceImg_1, plane, slice_id, true);
+        cv::Mat_<unsigned char> slice_1(size_1.z, size_1.y, sliceImg_1.getData());
         sift->detectAndCompute(slice_1, cv::Mat(), keypoints_1, descriptor_1);
 
         cv::Mat rgbSlice_1, rgbSlice_2, match_result;
         cv::cvtColor(slice_1, rgbSlice_1, cv::COLOR_GRAY2RGB);
 
-        scan_2.getSlice<uint8_t>(sliceImg_2, 0, slice_id, true);
-        cv::Mat_<unsigned char> slice_2(maxOverlap, size_2.y, sliceImg_2.getData());
+        scan_2.getSlice<uint8_t>(sliceImg_2, plane, slice_id, true);
+        cv::Mat_<unsigned char> slice_2(size_2.z, size_2.y, sliceImg_2.getData());
         sift->detectAndCompute(slice_2, cv::Mat(), keypoints_2, descriptor_2);
 
         matcher.match(descriptor_1, descriptor_2, matches);
