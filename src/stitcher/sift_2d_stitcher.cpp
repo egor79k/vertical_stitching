@@ -56,16 +56,57 @@ void SIFT2DStitcher::detect(cv::Mat img) {
 
     cv::destroyAllWindows();
 
-    // for (int octave = 0; octave < octaves_num; ++ octave) {
-    //     for (int scale_level = 1; scale_level < scale_levels_num - 2; ++scale_level) {
-    //         for (int y = 1; y < DoG[octave][scale_level].rows - 1; ++y) {
-    //             for (int x = 1; x < DoG[octave][scale_level].cols - 1; ++x) {
-    //                 float candidate = DoG[octave][scale_level].at(y, x);
-    //                 if (candidate > DoG[octave][scale_level - 1].at(y, x)) {
-    //                     printf("%i %i", y, x);
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
+    for (int octave = 0; octave < octaves_num; ++ octave) {
+        for (int scale_level = 1; scale_level < scale_levels_num - 2; ++scale_level) {
+            for (int y = 1; y < DoG[octave][scale_level].rows - 1; ++y) {
+                for (int x = 1; x < DoG[octave][scale_level].cols - 1; ++x) {
+                    cv::Rect2i region(x - 1, y - 1, 3, 3);
+
+                    struct RegExtr {
+                        cv::Mat reg{};
+                        double min_val = 0;
+                        double max_val = 0;
+                        cv::Point min_loc{};
+                        cv::Point max_loc{};
+                    };
+
+                    RegExtr extrs[3] = {};
+
+                    // extrs[0].reg = DoG[octave][scale_level - 1](region);
+                    // extrs[1].reg = DoG[octave][scale_level](region);
+                    // extrs[2].reg = DoG[octave][scale_level + 1](region);
+
+                    for (int i = 0; i < 3; ++i) {
+                        extrs[i].reg = DoG[octave][scale_level - i + 1](region);
+                        cv::minMaxLoc(extrs[i].reg,
+                            &(extrs[i].min_val),
+                            &(extrs[i].max_val),
+                            &(extrs[i].min_loc),
+                            &(extrs[i].max_loc));
+                    }
+
+                    if (cv::Point(1, 1) == extrs[1].min_loc &&
+                        extrs[0].min_val > extrs[1].min_val &&
+                        extrs[2].min_val > extrs[1].min_val) {
+                        printf("MIN LOC: %i %i\n", y, x);
+                    }
+
+                    if (cv::Point(1, 1) == extrs[1].max_loc &&
+                        extrs[0].max_val < extrs[1].max_val &&
+                        extrs[2].max_val < extrs[1].max_val) {
+                        printf("MAX LOC: %i %i\n", y, x);
+                    }
+
+                    // printf("%f %f %f\n", extrs[0].max_val, extrs[1].max_val, extrs[2].max_val);
+                    
+                    // float candidate = DoG[octave][scale_level].at(y, x);
+                    // if (candidate > DoG[octave][scale_level - 1].at(y, x) &&
+                    //     candidate > DoG[octave][scale_level].at(y, x) &&) {
+                    //     printf("%i %i", y, x);
+
+                    // }
+                }
+            }
+        }
+    }
 }
