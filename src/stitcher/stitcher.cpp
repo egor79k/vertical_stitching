@@ -199,14 +199,14 @@ int CVSIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, cons
     for (int plane : planes) {
         int slice_id = size_1.x / 2;
         scan_1.getSlice<uint8_t>(sliceImg_1, plane, slice_id, true);
-        cv::Mat_<unsigned char> slice_1(size_1.z, size_1.y, sliceImg_1.getData());
+        cv::Mat_<unsigned char> slice_1(maxOverlap, size_1.y, sliceImg_1.getData() + (size_1.z - maxOverlap) * size_1.y);
         sift->detectAndCompute(slice_1, cv::Mat(), keypoints_1, descriptor_1);
 
         cv::Mat rgbSlice_1, rgbSlice_2, match_result;
         cv::cvtColor(slice_1, rgbSlice_1, cv::COLOR_GRAY2RGB);
 
         scan_2.getSlice<uint8_t>(sliceImg_2, plane, slice_id, true);
-        cv::Mat_<unsigned char> slice_2(size_2.z, size_2.y, sliceImg_2.getData());
+        cv::Mat_<unsigned char> slice_2(maxOverlap, size_2.y, sliceImg_2.getData());
         sift->detectAndCompute(slice_2, cv::Mat(), keypoints_2, descriptor_2);
 
         matcher.match(descriptor_1, descriptor_2, matches);
@@ -218,7 +218,7 @@ int CVSIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, cons
         for (int i = 0; i < goodMatchesNum; ++i) {
             auto kp_1 = keypoints_1[goodMatches[i].queryIdx].pt;
             auto kp_2 = keypoints_2[goodMatches[i].trainIdx].pt;
-            float distance = (maxOverlap - kp_1.y + kp_2.y);
+            float distance = (kp_2.y - kp_1.y + maxOverlap) / 2;
             printf("distance: %f\n", distance);
             distancesSum += distance;
         }
