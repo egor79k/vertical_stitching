@@ -7,6 +7,9 @@
 
 
 int main(int argc, char *argv[]) {
+    // SIFT2DStitcher stitcher;
+    // stitcher.testDetection();
+    // return 0;s
     QApplication a(argc, argv);
 
     AlgoList stitchAlgos = {
