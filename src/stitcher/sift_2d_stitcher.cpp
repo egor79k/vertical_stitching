@@ -49,6 +49,9 @@ void SIFT2DStitcher::testDetection() {
     cv::cvtColor(origImg, origImg, cv::COLOR_RGB2GRAY);
     origImg.convertTo(img, CV_32F);
     cv::normalize(img, img, 0, 1, cv::NORM_MINMAX);
+    cv::namedWindow("Display Keypoints", cv::WINDOW_AUTOSIZE);
+    // cv::imshow("Display Keypoints", img);
+    // cv::waitKey(0);
 
     std::vector<std::vector<cv::Mat>> DoG_1;
     std::vector<cv::KeyPoint> keypoints_1;
@@ -89,7 +92,6 @@ void displayImg(cv::Mat img) {
 void SIFT2DStitcher::buildDoG(cv::Mat img, std::vector<std::vector<cv::Mat>>& DoG) {
     const double sigma = 1.6;
     const double k = std::pow(2, 1 / static_cast<double>(scale_levels_num));
-    const int blur_levels_num = scale_levels_num + 3;
     
     std::vector<std::vector<cv::Mat>> gaussians(octaves_num);
     DoG.resize(octaves_num);
@@ -99,14 +101,14 @@ void SIFT2DStitcher::buildDoG(cv::Mat img, std::vector<std::vector<cv::Mat>>& Do
         DoG[i].resize(blur_levels_num - 1);
     }
 
-    cv::GaussianBlur(img, gaussians[0][0], cv::Size(5, 5), sigma);
+    cv::GaussianBlur(img, gaussians[0][0], cv::Size(0, 0), sigma);
 
     for (int octave = 0; octave < octaves_num; ++octave) {
         // displayImg(gaussians[octave][0]);
 
         for (int scale_level = 1; scale_level < blur_levels_num; ++scale_level) {
             double kernel = sigma * std::pow(2, octave) * std::pow(k, scale_level);
-            cv::GaussianBlur(gaussians[octave][scale_level - 1], gaussians[octave][scale_level], cv::Size(5, 5), kernel);
+            cv::GaussianBlur(gaussians[octave][scale_level - 1], gaussians[octave][scale_level], cv::Size(0, 0), kernel);
             // displayImg(gaussians[octave][scale_level]);
         }
 
@@ -128,7 +130,7 @@ void SIFT2DStitcher::detect(const std::vector<std::vector<cv::Mat>>& DoG, std::v
     int scale = 1;
 
     for (int octave = 0; octave < octaves_num; ++ octave) {
-        for (int scale_level = 1; scale_level < scale_levels_num + 1; ++scale_level) {
+        for (int scale_level = 1; scale_level < blur_levels_num - 2; ++scale_level) {
             cv::Mat img_1 = DoG[octave][scale_level - 1];
             cv::Mat img_2 = DoG[octave][scale_level];
             cv::Mat img_3 = DoG[octave][scale_level + 1];
@@ -164,7 +166,7 @@ void SIFT2DStitcher::detect(const std::vector<std::vector<cv::Mat>>& DoG, std::v
                         center >= img_3.at<float>(x + 1, y - 1) &&
                         center >= img_3.at<float>(x + 1, y) &&
                         center >= img_3.at<float>(x + 1, y + 1)) {
-                        keypoints.emplace_back(cv::Point2f(x * scale, y * scale), 0.5f);
+                        keypoints.emplace_back(cv::Point2f(x * scale, y * scale), 0.5f, -1, 0, octave);
                     }
                     else if (center <= img_1.at<float>(x - 1, y - 1) &&
                         center <= img_1.at<float>(x - 1, y) &&
@@ -194,7 +196,7 @@ void SIFT2DStitcher::detect(const std::vector<std::vector<cv::Mat>>& DoG, std::v
                         center <= img_3.at<float>(x + 1, y - 1) &&
                         center <= img_3.at<float>(x + 1, y) &&
                         center <= img_3.at<float>(x + 1, y + 1)) {
-                        keypoints.emplace_back(cv::Point2f(x * scale, y * scale), 0.5f);
+                        keypoints.emplace_back(cv::Point2f(x * scale, y * scale), 0.5f, -1, 0, octave);
                     }
                 }
             }
