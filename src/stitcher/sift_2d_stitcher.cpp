@@ -44,7 +44,7 @@ std::shared_ptr<VoxelContainer> SIFT2DStitcher::stitch(const VoxelContainer& sca
 
 
 void SIFT2DStitcher::testDetection() {
-    cv::Mat origImg = cv::imread("/home/egor/projects/vertical_stitching/reconstructions/SIFT_test.png");
+    cv::Mat origImg = cv::imread("../reconstructions/SIFT_test.png");
     cv::Mat_<float> img;
     cv::cvtColor(origImg, origImg, cv::COLOR_RGB2GRAY);
     origImg.convertTo(img, CV_32F);
@@ -58,12 +58,19 @@ void SIFT2DStitcher::testDetection() {
     buildDoG(img, DoG_1);
     detect(DoG_1, keypoints_1);
 
-    cv::Mat rgbSlice;
-    cv::normalize(DoG_1[0][1], rgbSlice, 0, 255, cv::NORM_MINMAX);
-    rgbSlice.convertTo(rgbSlice, CV_8U);
-    cv::drawKeypoints(rgbSlice, keypoints_1, rgbSlice);
-    cv::imshow("Display Keypoints", rgbSlice);
-    cv::waitKey(0);
+    // cv::Mat rgbSlice;
+    // cv::normalize(DoG_1[0][1], rgbSlice, 0, 255, cv::NORM_MINMAX);
+    // rgbSlice.convertTo(rgbSlice, CV_8U);
+    // cv::drawKeypoints(rgbSlice, keypoints_1, rgbSlice);
+    // cv::imshow("Display Keypoints", rgbSlice);
+    // cv::waitKey(0);
+
+    // cv::Mat rgbSlice = origImg.clone();
+    // cv::drawKeypoints(rgbSlice, keypoints_1, rgbSlice);
+    // cv::imshow("Display Keypoints", rgbSlice);
+    // cv::imwrite("all_candidates_1.png", rgbSlice);
+    // cv::waitKey(0);
+
 
     printf("Finded %lu candidates to keypoints\n", keypoints_1.size());
     localize(DoG_1, keypoints_1);
@@ -71,6 +78,7 @@ void SIFT2DStitcher::testDetection() {
     printf("Finded %lu keypoints\n", keypoints_1.size());
     cv::drawKeypoints(origImg, keypoints_1, origImg);
     cv::imshow("Display Keypoints", origImg);
+    // cv::imwrite("localized_and_contrast_filtered_1.png", origImg);
     cv::waitKey(0);
     cv::destroyAllWindows();
 }
@@ -131,7 +139,7 @@ void SIFT2DStitcher::buildDoG(cv::Mat img, std::vector<std::vector<cv::Mat>>& Do
         for (int scale_level = 0; scale_level < blur_levels_num - 1; ++scale_level) {
             DoG[octave][scale_level] = gaussians[octave][scale_level] - gaussians[octave][scale_level + 1];
             // displayImg(DoG[octave][scale_level]);
-            cv::normalize(DoG[octave][scale_level], DoG[octave][scale_level], 0, 1, cv::NORM_MINMAX);
+            // cv::normalize(DoG[octave][scale_level], DoG[octave][scale_level], 0, 1, cv::NORM_MINMAX);
         }
     }
 }
@@ -177,7 +185,7 @@ void SIFT2DStitcher::detect(const std::vector<std::vector<cv::Mat>>& DoG, std::v
                         center >= img_2.at<float>(x + 1, y - 1) &&
                         center >= img_2.at<float>(x + 1, y) &&
                         center >= img_2.at<float>(x + 1, y + 1)) {
-                        keypoints.emplace_back(cv::Point2f(y, x), 0.5f, -1, 0, octave, scale_level);
+                        keypoints.emplace_back(cv::Point2f(y * scale, x * scale), 0.5f, -1, 0, octave, scale_level);
                     }
                     else if (center <= img_0.at<float>(x - 1, y - 1) &&
                         center <= img_0.at<float>(x - 1, y) &&
@@ -207,7 +215,7 @@ void SIFT2DStitcher::detect(const std::vector<std::vector<cv::Mat>>& DoG, std::v
                         center <= img_2.at<float>(x + 1, y - 1) &&
                         center <= img_2.at<float>(x + 1, y) &&
                         center <= img_2.at<float>(x + 1, y + 1)) {
-                        keypoints.emplace_back(cv::Point2f(y, x), 0.5f, -1, 0, octave, scale_level);
+                        keypoints.emplace_back(cv::Point2f(y * scale, x * scale), 0.5f, -1, 0, octave, scale_level);
                     }
                 }
             }
