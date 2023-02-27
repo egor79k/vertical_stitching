@@ -44,7 +44,7 @@ std::shared_ptr<VoxelContainer> SIFT2DStitcher::stitch(const VoxelContainer& sca
 
 
 void SIFT2DStitcher::testDetection() {
-    cv::Mat origImg = cv::imread("../reconstructions/SIFT_test.png");
+    cv::Mat origImg = cv::imread("../reconstructions/128.png");
     cv::Mat_<float> img;
     cv::cvtColor(origImg, origImg, cv::COLOR_RGB2GRAY);
     origImg.convertTo(img, CV_32F);
@@ -65,11 +65,11 @@ void SIFT2DStitcher::testDetection() {
     // cv::imshow("Display Keypoints", rgbSlice);
     // cv::waitKey(0);
 
-    // cv::Mat rgbSlice = origImg.clone();
-    // cv::drawKeypoints(rgbSlice, keypoints_1, rgbSlice);
-    // cv::imshow("Display Keypoints", rgbSlice);
+    cv::Mat rgbSlice = origImg.clone();
+    cv::drawKeypoints(rgbSlice, keypoints_1, rgbSlice);
+    cv::imshow("Display Keypoints", rgbSlice);
     // cv::imwrite("all_candidates_1.png", rgbSlice);
-    // cv::waitKey(0);
+    cv::waitKey(0);
 
 
     printf("Finded %lu candidates to keypoints\n", keypoints_1.size());
@@ -274,12 +274,15 @@ void SIFT2DStitcher::hessian(const std::vector<std::vector<cv::Mat>>& DoG, const
 void SIFT2DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints) {
     const float min_shift = 0.5;
     const float min_contrast = 0.03;
+    const float eigen_ratio = 10;
 
     std::vector<cv::KeyPoint> true_keypoints;
 
     for (cv::KeyPoint& kp : keypoints) {
         const int max_attempts = 5;
         int attempt_id = 0;
+
+        float last_kp_val = 0;
 
         cv::Mat1f grad(3, 1);
         cv::Mat1f hess(3, 3);
@@ -288,9 +291,13 @@ void SIFT2DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
             gradient(DoG, kp, grad);
             hessian(DoG, kp, hess);
 
+            // Estimate position update
             cv::Mat1f inv_hess;
             cv::invert(hess, inv_hess);
             cv::Mat kp_shift = -inv_hess * grad;
+
+            const cv::Mat& kp_img = DoG[kp.octave][kp.class_id];
+            last_kp_val = kp_img.at<float>(kp.pt.y, kp.pt.x);
 
             kp.pt.x += kp_shift.at<float>(0);
             kp.pt.y += kp_shift.at<float>(1);
@@ -299,12 +306,22 @@ void SIFT2DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
             if (kp_shift.at<float>(0) < min_shift &&
                 kp_shift.at<float>(1) < min_shift &&
                 kp_shift.at<float>(2) < min_shift) {
-                float contrast = std::abs(kp_shift.at<float>(0) * kp_shift.at<float>(0) +
-                                          kp_shift.at<float>(1) * kp_shift.at<float>(1) +
-                                          kp_shift.at<float>(2) * kp_shift.at<float>(2));
+                // Rejecting unstable extrema with low contrast
+                float contrast = last_kp_val + 0.5 * (grad.at<float>(0) * kp_shift.at<float>(0) +
+                                                      grad.at<float>(1) * kp_shift.at<float>(1) +
+                                                      grad.at<float>(2) * kp_shift.at<float>(2));
 
-                if (contrast < min_contrast) {
+                if (contrast * scale_levels_num < min_contrast) {
                     printf("Low contrast keypoint discarded\n");
+                    break;
+                }
+
+                // Eliminating edge responses
+                float hess_det = hess.at<float>(0, 0) * hess.at<float>(1, 1) - hess.at<float>(0, 1) * hess.at<float>(1, 0);
+                float hess_trace = hess.at<float>(0, 0) + hess.at<float>(1, 1);
+
+                if (hess_det <= 0 || eigen_ratio * hess_trace * hess_trace >= (eigen_ratio + 1) * (eigen_ratio + 1) * hess_det) {
+                    printf("High edge response keypoint discarded\n");
                     break;
                 }
 
@@ -312,8 +329,7 @@ void SIFT2DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
                 break;
             }
 
-            const cv::Mat& kp_img = DoG[kp.octave][kp.class_id];
-
+            // Check if keypoint is in layer bounds
             if (1 > kp.pt.x ||
                 kp.pt.x >= kp_img.cols - 1 ||
                 1 > kp.pt.y ||
