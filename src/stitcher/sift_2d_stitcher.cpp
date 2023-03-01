@@ -44,7 +44,7 @@ std::shared_ptr<VoxelContainer> SIFT2DStitcher::stitch(const VoxelContainer& sca
 
 
 void SIFT2DStitcher::testDetection() {
-    cv::Mat origImg = cv::imread("../reconstructions/128.png");
+    cv::Mat origImg = cv::imread("../reconstructions/130.png");
     cv::Mat_<float> img;
     cv::cvtColor(origImg, origImg, cv::COLOR_RGB2GRAY);
     origImg.convertTo(img, CV_32F);
@@ -108,10 +108,9 @@ void displayImg(cv::Mat img) {
 
 
 void SIFT2DStitcher::buildDoG(cv::Mat img, std::vector<std::vector<cv::Mat>>& DoG) {
-    const double sigma = 1.6;
     const double k = std::pow(2, 1 / static_cast<double>(scale_levels_num));
     
-    std::vector<std::vector<cv::Mat>> gaussians(octaves_num);
+    gaussians.resize(octaves_num);
     DoG.resize(octaves_num);
 
     for (int i = 0; i < octaves_num; ++i) {
@@ -153,6 +152,7 @@ void SIFT2DStitcher::detect(const std::vector<std::vector<cv::Mat>>& DoG, std::v
             cv::Mat img_0 = DoG[octave][scale_level - 1];
             cv::Mat img_1 = DoG[octave][scale_level];
             cv::Mat img_2 = DoG[octave][scale_level + 1];
+
             for (int x = 1; x < img_1.rows - 1; ++x) {
                 for (int y = 1; y < img_1.cols - 1; ++y) {
                     float center = img_1.at<float>(x, y);
@@ -185,7 +185,7 @@ void SIFT2DStitcher::detect(const std::vector<std::vector<cv::Mat>>& DoG, std::v
                         center >= img_2.at<float>(x + 1, y - 1) &&
                         center >= img_2.at<float>(x + 1, y) &&
                         center >= img_2.at<float>(x + 1, y + 1)) {
-                        keypoints.emplace_back(cv::Point2f(y * scale, x * scale), 0.5f, -1, 0, octave, scale_level);
+                        keypoints.emplace_back(cv::Point2f(y, x), 0.5f, -1, 0, octave, scale_level);
                     }
                     else if (center <= img_0.at<float>(x - 1, y - 1) &&
                         center <= img_0.at<float>(x - 1, y) &&
@@ -215,7 +215,7 @@ void SIFT2DStitcher::detect(const std::vector<std::vector<cv::Mat>>& DoG, std::v
                         center <= img_2.at<float>(x + 1, y - 1) &&
                         center <= img_2.at<float>(x + 1, y) &&
                         center <= img_2.at<float>(x + 1, y + 1)) {
-                        keypoints.emplace_back(cv::Point2f(y * scale, x * scale), 0.5f, -1, 0, octave, scale_level);
+                        keypoints.emplace_back(cv::Point2f(y, x), 0.5f, -1, 0, octave, scale_level);
                     }
                 }
             }
@@ -325,6 +325,14 @@ void SIFT2DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
                     break;
                 }
 
+                // (kp.octave + 1) ???
+                kp.size = sigma * std::pow(2, kp.class_id / static_cast<float>(scale_levels_num)) * std::pow(2, kp.octave);
+
+                // Convert keypoint position to original scale space
+                kp.pt *= std::pow(2, kp.octave);
+
+                printf("KP %i %f %f\n", kp.octave, kp.pt.x, kp.pt.y);
+
                 true_keypoints.push_back(kp);
                 break;
             }
@@ -347,4 +355,46 @@ void SIFT2DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
     }
 
     keypoints = std::move(true_keypoints);
+}
+
+
+void SIFT2DStitcher::orient(const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints) {
+    const float scale_factor = 1.5;
+    const int hist_bins_num = 36;
+
+    HoG = cv::Mat1f::zeros(keypoints.size(), hist_bins_num);
+
+    for (int kp_id = 0; kp_id < keypoints.size(); ++kp_id) {
+        cv::KeyPoint& kp = keypoints[kp_id];
+
+        const float sigma = scale_factor * kp.size / std::pow(2, kp.octave);
+        const float radius = 3 * sigma;
+        const float weight_factor = -1 / (2 * sigma * sigma); 
+        
+        cv::Point center = kp.pt / std::pow(2, kp.octave);
+
+        const cv::Mat& img = gaussians[kp.octave][kp.class_id];
+
+        for (int y = center.y - radius; y <= center.y + radius; ++y) {
+            if (y <= 0 || y >= img.rows - 1) {
+                continue;
+            }
+
+            for (int x = center.x - radius; x <= center.x + radius; ++x) {
+                if (x <= 0 || x >= img.cols - 1) {
+                    continue;
+                }
+
+                float dx = img.at<float>(y, x + 1) - img.at<float>(y, x - 1);
+                float dy = img.at<float>(y + 1, x) - img.at<float>(y - 1, x);
+                float magnitude = std::sqrt(dx * dx + dy * dy);
+                float orientation = std::atan2(dy, dx) * 180.0f / M_PI;
+                float weight = std::exp(weight_factor * (x * x + y * y));
+
+                // Add orientation to histogram weighted with gaussian
+                int hist_id = orientation * hist_bins_num / 360.0f;
+                HoG.at<float>(kp_id, hist_id) += weight * magnitude;
+            }
+        }
+    }
 }
