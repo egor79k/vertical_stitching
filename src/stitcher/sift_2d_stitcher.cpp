@@ -6,9 +6,39 @@ std::shared_ptr<VoxelContainer> SIFT2DStitcher::stitch(const VoxelContainer& sca
     VoxelContainer::Vector3 size_1 = scan_1.getSize();
     VoxelContainer::Vector3 size_2 = scan_2.getSize();
 
+    if (size_1.x != size_2.x || size_1.y != size_2.y) {
+        // QMessageBox::information(0, "Stitching error", "Failed to stitch scans due to different sizes.");
+        return nullptr;
+    }
+
+    int overlap = determineOptimalOverlap(scan_1, scan_2);
+
+    VoxelContainer::Vector3 stitchedSize = {size_1.x, size_1.y, size_1.z + size_2.z - overlap};
+
+    float* stitchedData = new float[stitchedSize.volume()];
+
+    int offsetVolume = overlap * size_2.x * size_2.y;
+    int scanVolume = size_2.x * size_2.y * (size_2.z - overlap);
+
+    memcpy(stitchedData, scan_1.getData(), size_1.volume() * sizeof(float));
+    memcpy(stitchedData + size_1.volume(), scan_2.getData() + offsetVolume, scanVolume * sizeof(float));
+
+    return std::make_shared<VoxelContainer>(stitchedData, stitchedSize, getStitchedRange(scan_1, scan_2));
+}
+
+
+int SIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const VoxelContainer& scan_2) {
+    VoxelContainer::Vector3 size_1 = scan_1.getSize();
+    VoxelContainer::Vector3 size_2 = scan_2.getSize();
+
     TiffImage<float> sliceImg_1, sliceImg_2;
     std::vector<std::vector<cv::Mat>> DoG_1, DoG_2;
     std::vector<cv::KeyPoint> keypoints_1, keypoints_2;
+    cv::Mat descriptors_1, descriptors_2;
+    cv::BFMatcher matcher;
+    std::vector<cv::DMatch> matches;
+    float distancesSum = 0;
+    int totalMatches = 0;
 
     for (int plane : planes) {
         int slice_id = size_1.x / 2;
@@ -23,6 +53,9 @@ std::shared_ptr<VoxelContainer> SIFT2DStitcher::stitch(const VoxelContainer& sca
         DoG_2.clear();
         keypoints_1.clear();
         keypoints_2.clear();
+        descriptors_1.release();
+        descriptors_2.release();
+        matches.clear();
 
         buildDoG(slice_1, DoG_1);
         buildDoG(slice_2, DoG_2);
@@ -32,19 +65,45 @@ std::shared_ptr<VoxelContainer> SIFT2DStitcher::stitch(const VoxelContainer& sca
 
         printf("Finded %lu and %lu candidates to keypoints\n", keypoints_1.size(), keypoints_2.size());
 
+        localize(DoG_1, keypoints_1);
+        localize(DoG_2, keypoints_2);
+
         TiffImage<unsigned char> charSliceImg;
         scan_1.getSlice<unsigned char>(charSliceImg, plane, slice_id, true);
         displayKeypoints(charSliceImg, keypoints_1);
         scan_2.getSlice<unsigned char>(charSliceImg, plane, slice_id, true);
         displayKeypoints(charSliceImg, keypoints_2);
+
+        // orient(DoG_1, keypoints_1);
+        // orient(DoG_2, keypoints_2);
+        calculateDescriptors(DoG_1, keypoints_1, descriptors_1);
+        calculateDescriptors(DoG_2, keypoints_2, descriptors_2);
+
+        matcher.match(descriptors_1, descriptors_2, matches);
+        totalMatches += matches.size();
+
+        printf("Matched %lu keypoints\n", matches.size());
+
+        for (int i = 0; i < matches.size(); ++i) {
+            auto kp_1 = keypoints_1[matches[i].queryIdx].pt;
+            auto kp_2 = keypoints_2[matches[i].trainIdx].pt;
+            float distance = (kp_2.y - kp_1.y) / 2;
+            printf("Distance: %f\n", distance);
+            distancesSum += distance;
+        }
     }
 
-    return nullptr;
+    if (totalMatches == 0) {
+        printf("No mathces :(\n");
+        return 0;
+    }
+
+    return distancesSum / totalMatches;
 }
 
 
 void SIFT2DStitcher::testDetection() {
-    cv::Mat origImg = cv::imread("../reconstructions/130.png");
+    cv::Mat origImg = cv::imread("../reconstructions/SIFT_test.png");
     cv::Mat_<float> img;
     cv::cvtColor(origImg, origImg, cv::COLOR_RGB2GRAY);
     origImg.convertTo(img, CV_32F);
@@ -55,8 +114,12 @@ void SIFT2DStitcher::testDetection() {
 
     std::vector<std::vector<cv::Mat>> DoG_1;
     std::vector<cv::KeyPoint> keypoints_1;
+    cv::Mat descriptors_1;
+
     buildDoG(img, DoG_1);
     detect(DoG_1, keypoints_1);
+
+    printf("Finded %lu candidates to keypoints\n", keypoints_1.size());
 
     // cv::Mat rgbSlice;
     // cv::normalize(DoG_1[0][1], rgbSlice, 0, 255, cv::NORM_MINMAX);
@@ -71,9 +134,9 @@ void SIFT2DStitcher::testDetection() {
     // cv::imwrite("all_candidates_1.png", rgbSlice);
     cv::waitKey(0);
 
-
-    printf("Finded %lu candidates to keypoints\n", keypoints_1.size());
     localize(DoG_1, keypoints_1);
+    orient(DoG_1, keypoints_1);
+    calculateDescriptors(DoG_1, keypoints_1, descriptors_1);
 
     printf("Finded %lu keypoints\n", keypoints_1.size());
     cv::drawKeypoints(origImg, keypoints_1, origImg);
@@ -361,10 +424,11 @@ void SIFT2DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
 void SIFT2DStitcher::orient(const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints) {
     const float scale_factor = 1.5;
     const int hist_bins_num = 36;
+    const int kps_num = keypoints.size();
 
-    HoG = cv::Mat1f::zeros(keypoints.size(), hist_bins_num);
+    cv::Mat HoG = cv::Mat1f::zeros(kps_num, hist_bins_num);
 
-    for (int kp_id = 0; kp_id < keypoints.size(); ++kp_id) {
+    for (int kp_id = 0; kp_id < kps_num; ++kp_id) {
         cv::KeyPoint& kp = keypoints[kp_id];
 
         const float sigma = scale_factor * kp.size / std::pow(2, kp.octave);
@@ -394,6 +458,78 @@ void SIFT2DStitcher::orient(const std::vector<std::vector<cv::Mat>>& DoG, std::v
                 // Add orientation to histogram weighted with gaussian
                 int hist_id = orientation * hist_bins_num / 360.0f;
                 HoG.at<float>(kp_id, hist_id) += weight * magnitude;
+            }
+        }
+
+        // Find max peak
+        int max_bin = 0;
+        float max_val = 0;
+
+        for (int bin = 0; bin < hist_bins_num; ++bin) {
+            if (HoG.at<float>(kp_id, bin) > max_val) {
+                max_val = HoG.at<float>(kp_id, bin);
+                max_bin = bin;
+            }
+        }
+
+        // Here must be parabolic interpolation
+        kp.angle = max_bin * 10;
+
+        // Find other peaks
+        float bin_threshold = max_val * 0.8;
+
+        for (int bin = 0; bin < hist_bins_num; ++bin) {
+            if (bin != max_bin && HoG.at<float>(kp_id, bin) > bin_threshold) {
+                keypoints.emplace_back(kp.pt, kp.size, bin * 10, kp.response, kp.octave, kp.class_id);
+            }
+        }
+    }
+}
+
+
+void SIFT2DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints, cv::Mat descriptors) {
+    const int window_width = 4;
+    const int region_width = 4;
+    const int radius = window_width * region_width / 2;
+    const int hist_bins_num = 8;
+    const int kps_num = keypoints.size();
+
+    descriptors = cv::Mat1f::zeros(kps_num, window_width * window_width * hist_bins_num);
+
+    for (int kp_id = 0; kp_id < kps_num; ++kp_id) {
+        cv::KeyPoint& kp = keypoints[kp_id];
+
+        const float sigma = window_width / 2;
+        const float weight_factor = -1 / (2 * sigma * sigma); 
+        // const float angle = kp.angle * M_PI / 180.0f;
+        // const float cos_angle = std::cos(angle);
+        // const float sin_angle = std::sin(angle);
+        
+        cv::Point center = kp.pt / std::pow(2, kp.octave);
+
+        const cv::Mat& img = gaussians[kp.octave][kp.class_id];
+
+        for (int y = center.y - radius; y <= center.y + radius; ++y) {
+            if (y <= 0 || y >= img.rows - 1) {
+                continue;
+            }
+
+            for (int x = center.x - radius; x <= center.x + radius; ++x) {
+                if (x <= 0 || x >= img.cols - 1) {
+                    continue;
+                }
+
+                float dx = img.at<float>(y, x + 1) - img.at<float>(y, x - 1);
+                float dy = img.at<float>(y + 1, x) - img.at<float>(y - 1, x);
+                float magnitude = std::sqrt(dx * dx + dy * dy);
+                float orientation = std::atan2(dy, dx) * 180.0f / M_PI;
+                float weight = std::exp(weight_factor * (x * x + y * y));
+
+                // Add orientation to histogram weighted with gaussian
+                int hist_row = y / region_width;
+                int hist_col = x / region_width;
+                int hist_id = (hist_row * window_width + hist_col) * hist_bins_num + orientation * hist_bins_num / 360.0f;
+                descriptors.at<float>(kp_id, hist_id) += weight * magnitude;
             }
         }
     }

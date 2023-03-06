@@ -21,6 +21,7 @@ private:
         int octave;
     };
 
+    int determineOptimalOverlap(const VoxelContainer& scan_1, const VoxelContainer& scan_2);
     void displayKeypoints(TiffImage<unsigned char>& sliceImg, const std::vector<cv::KeyPoint>& keypoints);
     void buildDoG(cv::Mat img, std::vector<std::vector<cv::Mat>>& DoG);
     void detect(const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints);
@@ -28,6 +29,7 @@ private:
     void hessian(const std::vector<std::vector<cv::Mat>>& DoG, const cv::KeyPoint& kp, cv::Mat1f& result);
     void localize(const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints);
     void orient(const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints);
+    void calculateDescriptors(const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints, cv::Mat descriptors);
 
     const int octaves_num = 4;
     const int scale_levels_num = 5;
@@ -37,7 +39,6 @@ private:
 
     std::vector<std::vector<cv::Mat>> gaussians;
     // std::vector<std::vector<cv::Mat>> DoG;
-    cv::Mat HoG;
 };
 
 #endif // SIFT_2D_STITCHER
