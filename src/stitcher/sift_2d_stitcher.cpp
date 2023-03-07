@@ -68,16 +68,17 @@ int SIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const 
         localize(DoG_1, keypoints_1);
         localize(DoG_2, keypoints_2);
 
+        orient(DoG_1, keypoints_1);
+        orient(DoG_2, keypoints_2);
+
         TiffImage<unsigned char> charSliceImg;
         scan_1.getSlice<unsigned char>(charSliceImg, plane, slice_id, true);
         displayKeypoints(charSliceImg, keypoints_1);
         scan_2.getSlice<unsigned char>(charSliceImg, plane, slice_id, true);
         displayKeypoints(charSliceImg, keypoints_2);
 
-        // orient(DoG_1, keypoints_1);
-        // orient(DoG_2, keypoints_2);
-        calculateDescriptors(DoG_1, keypoints_1, descriptors_1);
-        calculateDescriptors(DoG_2, keypoints_2, descriptors_2);
+        // calculateDescriptors(DoG_1, keypoints_1, descriptors_1);
+        // calculateDescriptors(DoG_2, keypoints_2, descriptors_2);
 
         matcher.match(descriptors_1, descriptors_2, matches);
         totalMatches += matches.size();
@@ -103,7 +104,7 @@ int SIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const 
 
 
 void SIFT2DStitcher::testDetection() {
-    cv::Mat origImg = cv::imread("../reconstructions/SIFT_test.png");
+    cv::Mat origImg = cv::imread("../reconstructions/130.png");
     cv::Mat_<float> img;
     cv::cvtColor(origImg, origImg, cv::COLOR_RGB2GRAY);
     origImg.convertTo(img, CV_32F);
@@ -128,20 +129,21 @@ void SIFT2DStitcher::testDetection() {
     // cv::imshow("Display Keypoints", rgbSlice);
     // cv::waitKey(0);
 
-    cv::Mat rgbSlice = origImg.clone();
-    cv::drawKeypoints(rgbSlice, keypoints_1, rgbSlice);
-    cv::imshow("Display Keypoints", rgbSlice);
+    // cv::Mat rgbSlice = origImg.clone();
+    // cv::drawKeypoints(rgbSlice, keypoints_1, rgbSlice);
+    // cv::imshow("Display Keypoints", rgbSlice);
     // cv::imwrite("all_candidates_1.png", rgbSlice);
-    cv::waitKey(0);
+    // cv::waitKey(0);
 
     localize(DoG_1, keypoints_1);
     orient(DoG_1, keypoints_1);
     calculateDescriptors(DoG_1, keypoints_1, descriptors_1);
+    std::cout << descriptors_1 << std::endl;
 
     printf("Finded %lu keypoints\n", keypoints_1.size());
-    cv::drawKeypoints(origImg, keypoints_1, origImg);
+    cv::drawKeypoints(origImg, keypoints_1, origImg, cv::Scalar(0, 0, 255), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
     cv::imshow("Display Keypoints", origImg);
-    // cv::imwrite("localized_and_contrast_filtered_1.png", origImg);
+    // cv::imwrite("all_oriented_1.png", origImg);
     cv::waitKey(0);
     cv::destroyAllWindows();
 }
@@ -151,9 +153,11 @@ void SIFT2DStitcher::displayKeypoints(TiffImage<unsigned char>& sliceImg, const 
     cv::Mat_<unsigned char> slice(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData());
     cv::Mat rgbSlice;
     cv::cvtColor(slice, rgbSlice, cv::COLOR_GRAY2RGB);
-    cv::drawKeypoints(rgbSlice, keypoints, rgbSlice);
+    cv::drawKeypoints(rgbSlice, keypoints, rgbSlice, cv::Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
     cv::namedWindow("Display Keypoints", cv::WINDOW_AUTOSIZE);
     cv::imshow("Display Keypoints", rgbSlice);
+    // static int unique_image_id = 0;
+    // cv::imwrite("oriented_keypoints_" + std::to_string(unique_image_id++) + ".png", rgbSlice);
     cv::waitKey(0);
     cv::destroyAllWindows();
 }
@@ -389,12 +393,10 @@ void SIFT2DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
                 }
 
                 // (kp.octave + 1) ???
-                kp.size = sigma * std::pow(2, kp.class_id / static_cast<float>(scale_levels_num)) * std::pow(2, kp.octave);
+                kp.size = sigma * std::pow(2, kp.class_id / static_cast<float>(scale_levels_num)) * std::pow(2, kp.octave + 1);
 
                 // Convert keypoint position to original scale space
                 kp.pt *= std::pow(2, kp.octave);
-
-                printf("KP %i %f %f\n", kp.octave, kp.pt.x, kp.pt.y);
 
                 true_keypoints.push_back(kp);
                 break;
@@ -421,6 +423,14 @@ void SIFT2DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
 }
 
 
+float SIFT2DStitcher::parabolicInterpolation(float y1, float y2, float y3) {
+    // Assume that x1 = -1, x2 = 0, x3 = 1
+    float a = y2 - (y1 + y3) / 2;
+    float b = (y3 - y1) / 4;
+    return b / a;
+}
+
+
 void SIFT2DStitcher::orient(const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints) {
     const float scale_factor = 1.5;
     const int hist_bins_num = 36;
@@ -431,9 +441,10 @@ void SIFT2DStitcher::orient(const std::vector<std::vector<cv::Mat>>& DoG, std::v
     for (int kp_id = 0; kp_id < kps_num; ++kp_id) {
         cv::KeyPoint& kp = keypoints[kp_id];
 
-        const float sigma = scale_factor * kp.size / std::pow(2, kp.octave);
+        // Calculate HoG
+        const float sigma = scale_factor * kp.size / std::pow(2, kp.octave + 1);
         const float radius = 3 * sigma;
-        const float weight_factor = -1 / (2 * sigma * sigma); 
+        const float weight_factor = -1 / (2 * sigma * sigma);
         
         cv::Point center = kp.pt / std::pow(2, kp.octave);
 
@@ -452,8 +463,11 @@ void SIFT2DStitcher::orient(const std::vector<std::vector<cv::Mat>>& DoG, std::v
                 float dx = img.at<float>(y, x + 1) - img.at<float>(y, x - 1);
                 float dy = img.at<float>(y + 1, x) - img.at<float>(y - 1, x);
                 float magnitude = std::sqrt(dx * dx + dy * dy);
-                float orientation = std::atan2(dy, dx) * 180.0f / M_PI;
-                float weight = std::exp(weight_factor * (x * x + y * y));
+                float orientation = std::atan2(dy, dx) * 180.0f / M_PI + 180;
+                
+                int x_loc = x - center.x;
+                int y_loc = y - center.y;
+                float weight = std::exp(weight_factor * (x_loc * x_loc + y_loc * y_loc));
 
                 // Add orientation to histogram weighted with gaussian
                 int hist_id = orientation * hist_bins_num / 360.0f;
@@ -472,15 +486,29 @@ void SIFT2DStitcher::orient(const std::vector<std::vector<cv::Mat>>& DoG, std::v
             }
         }
 
-        // Here must be parabolic interpolation
-        kp.angle = max_bin * 10;
+        // Interpolate peak with its two neighbours
+        float left_val = HoG.at<float>(kp_id, (max_bin - 1 + hist_bins_num) % hist_bins_num);
+        float right_val = HoG.at<float>(kp_id, (max_bin + 1) % hist_bins_num);
+        kp.angle = (parabolicInterpolation(left_val, max_val, right_val) + max_bin) * 10;
+
+        // TEMPORARY FOR VISUALIZATION
+        kp.size *= 3;
 
         // Find other peaks
         float bin_threshold = max_val * 0.8;
 
         for (int bin = 0; bin < hist_bins_num; ++bin) {
-            if (bin != max_bin && HoG.at<float>(kp_id, bin) > bin_threshold) {
-                keypoints.emplace_back(kp.pt, kp.size, bin * 10, kp.response, kp.octave, kp.class_id);
+            float val = HoG.at<float>(kp_id, bin);
+
+            if (bin != max_bin && val > bin_threshold) {
+                // Interpolate peak with its two neighbours
+                float left_val = HoG.at<float>(kp_id, (bin - 1 + hist_bins_num) % hist_bins_num);
+                float right_val = HoG.at<float>(kp_id, (bin + 1) % hist_bins_num);
+                float angle = (parabolicInterpolation(left_val, val, right_val) + bin) * 10;
+
+                // Create new keypoint on the same place with other orientation
+                keypoints.emplace_back(kp.pt, kp.size, angle, kp.response, kp.octave, kp.class_id);
+                printf("Angle: %f\n", angle);
             }
         }
     }
