@@ -32,6 +32,7 @@ int SIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const 
     VoxelContainer::Vector3 size_2 = scan_2.getSize();
 
     TiffImage<float> sliceImg_1, sliceImg_2;
+    std::vector<std::vector<cv::Mat>> gaussians_1, gaussians_2;
     std::vector<std::vector<cv::Mat>> DoG_1, DoG_2;
     std::vector<cv::KeyPoint> keypoints_1, keypoints_2;
     cv::Mat descriptors_1, descriptors_2;
@@ -57,8 +58,8 @@ int SIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const 
         descriptors_2.release();
         matches.clear();
 
-        buildDoG(slice_1, DoG_1);
-        buildDoG(slice_2, DoG_2);
+        buildDoG(slice_1, gaussians_1, DoG_1);
+        buildDoG(slice_2, gaussians_2, DoG_2);
 
         detect(DoG_1, keypoints_1);
         detect(DoG_2, keypoints_2);
@@ -68,8 +69,8 @@ int SIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const 
         localize(DoG_1, keypoints_1);
         localize(DoG_2, keypoints_2);
 
-        orient(DoG_1, keypoints_1);
-        orient(DoG_2, keypoints_2);
+        orient(gaussians_1, DoG_1, keypoints_1);
+        orient(gaussians_2, DoG_2, keypoints_2);
 
         TiffImage<unsigned char> charSliceImg;
         scan_1.getSlice<unsigned char>(charSliceImg, plane, slice_id, true);
@@ -77,8 +78,8 @@ int SIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const 
         scan_2.getSlice<unsigned char>(charSliceImg, plane, slice_id, true);
         displayKeypoints(charSliceImg, keypoints_2);
 
-        // calculateDescriptors(DoG_1, keypoints_1, descriptors_1);
-        // calculateDescriptors(DoG_2, keypoints_2, descriptors_2);
+        // calculateDescriptors(gaussians_1, DoG_1, keypoints_1, descriptors_1);
+        // calculateDescriptors(gaussians_2, DoG_2, keypoints_2, descriptors_2);
 
         matcher.match(descriptors_1, descriptors_2, matches);
         totalMatches += matches.size();
@@ -104,23 +105,37 @@ int SIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const 
 
 
 void SIFT2DStitcher::testDetection() {
-    cv::Mat origImg = cv::imread("../reconstructions/SIFT_test.png");
-    cv::Mat_<float> img;
-    cv::cvtColor(origImg, origImg, cv::COLOR_RGB2GRAY);
-    origImg.convertTo(img, CV_32F);
-    cv::normalize(img, img, 0, 1, cv::NORM_MINMAX);
-    cv::namedWindow("Display Keypoints", cv::WINDOW_AUTOSIZE);
-    // cv::imshow("Display Keypoints", img);
+    cv::Mat origImg_1 = cv::imread("../reconstructions/SIFT_test.png");
+    cv::Mat origImg_2 = cv::imread("../reconstructions/SIFT_test.png");
+    cv::cvtColor(origImg_1, origImg_1, cv::COLOR_RGB2GRAY);
+    cv::cvtColor(origImg_2, origImg_2, cv::COLOR_RGB2GRAY);
+    cv::Mat_<float> img_1;
+    cv::Mat_<float> img_2;
+    origImg_1.convertTo(img_1, CV_32F);
+    origImg_2.convertTo(img_2, CV_32F);
+    // cv::normalize(img_1, img_1, 0, 1, cv::NORM_MINMAX);
+    // cv::namedWindow("Display Keypoints", cv::WINDOW_AUTOSIZE);
+    // cv::imshow("Display Keypoints", img_1);
     // cv::waitKey(0);
 
+    std::vector<std::vector<cv::Mat>> gaussians_1;
+    std::vector<std::vector<cv::Mat>> gaussians_2;
     std::vector<std::vector<cv::Mat>> DoG_1;
+    std::vector<std::vector<cv::Mat>> DoG_2;
     std::vector<cv::KeyPoint> keypoints_1;
+    std::vector<cv::KeyPoint> keypoints_2;
     cv::Mat descriptors_1;
+    cv::Mat descriptors_2;
+    std::vector<cv::DMatch> matches;
+    cv::BFMatcher matcher;
 
-    buildDoG(img, DoG_1);
+    buildDoG(img_1, gaussians_1, DoG_1);
+    buildDoG(img_2, gaussians_2, DoG_2);
+
     detect(DoG_1, keypoints_1);
+    detect(DoG_2, keypoints_2);
 
-    printf("Finded %lu candidates to keypoints\n", keypoints_1.size());
+    printf("Finded %lu + %lu candidates to keypoints\n", keypoints_1.size(), keypoints_2.size());
 
     // cv::Mat rgbSlice;
     // cv::normalize(DoG_1[0][1], rgbSlice, 0, 255, cv::NORM_MINMAX);
@@ -129,21 +144,31 @@ void SIFT2DStitcher::testDetection() {
     // cv::imshow("Display Keypoints", rgbSlice);
     // cv::waitKey(0);
 
-    // cv::Mat rgbSlice = origImg.clone();
+    // cv::Mat rgbSlice = origImg_1.clone();
     // cv::drawKeypoints(rgbSlice, keypoints_1, rgbSlice);
     // cv::imshow("Display Keypoints", rgbSlice);
     // cv::imwrite("all_candidates_1.png", rgbSlice);
     // cv::waitKey(0);
 
     localize(DoG_1, keypoints_1);
-    orient(DoG_1, keypoints_1);
-    calculateDescriptors(DoG_1, keypoints_1, descriptors_1);
-    std::cout << descriptors_1 << std::endl;
+    localize(DoG_2, keypoints_2);
+    
+    printf("Finded %lu + %lu keypoints\n", keypoints_1.size(), keypoints_2.size());
+    
+    orient(gaussians_1, DoG_1, keypoints_1);
+    orient(gaussians_2, DoG_2, keypoints_2);
 
-    printf("Finded %lu keypoints\n", keypoints_1.size());
-    cv::drawKeypoints(origImg, keypoints_1, origImg, cv::Scalar(0, 0, 255), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-    cv::imshow("Display Keypoints", origImg);
-    // cv::imwrite("all_oriented_1.png", origImg);
+    calculateDescriptors(gaussians_1, DoG_1, keypoints_1, descriptors_1);
+    calculateDescriptors(gaussians_2, DoG_2, keypoints_2, descriptors_2);
+
+    matcher.match(descriptors_1, descriptors_2, matches);
+
+    printf("Matches: %lu\n", matches.size());
+
+    cv::Mat result;
+    cv::drawMatches(origImg_1, keypoints_1, origImg_2, keypoints_2, matches, result, cv::Scalar(255, 255, 0), cv::Scalar(0, 0, 255), std::vector<char>(), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+    cv::imshow("Display Keypoints", result);
+    // cv::imwrite("all_oriented_1.png", origImg_1);
     cv::waitKey(0);
     cv::destroyAllWindows();
 }
@@ -174,7 +199,7 @@ void displayImg(cv::Mat img) {
 }
 
 
-void SIFT2DStitcher::buildDoG(cv::Mat img, std::vector<std::vector<cv::Mat>>& DoG) {
+void SIFT2DStitcher::buildDoG(cv::Mat img, std::vector<std::vector<cv::Mat>>& gaussians, std::vector<std::vector<cv::Mat>>& DoG) {
     const double k = std::pow(2, 1 / static_cast<double>(scale_levels_num));
     
     gaussians.resize(octaves_num);
@@ -379,7 +404,7 @@ void SIFT2DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
                                                       grad.at<float>(2) * kp_shift.at<float>(2));
 
                 if (contrast * scale_levels_num < min_contrast) {
-                    printf("Low contrast keypoint discarded\n");
+                    // printf("Low contrast keypoint discarded\n");
                     break;
                 }
 
@@ -388,7 +413,7 @@ void SIFT2DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
                 float hess_trace = hess.at<float>(0, 0) + hess.at<float>(1, 1);
 
                 if (hess_det <= 0 || eigen_ratio * hess_trace * hess_trace >= (eigen_ratio + 1) * (eigen_ratio + 1) * hess_det) {
-                    printf("High edge response keypoint discarded\n");
+                    // printf("High edge response keypoint discarded\n");
                     break;
                 }
 
@@ -409,13 +434,13 @@ void SIFT2DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
                 kp.pt.y >= kp_img.rows - 1 ||
                 1 > kp.class_id ||
                 kp.class_id >= blur_levels_num - 2) {
-                printf("Keypoint moved outside of image\n");
+                // printf("Keypoint moved outside of image\n");
                 break;
             }
         }
 
         if (attempt_id == max_attempts) {
-            printf("Maximum number attempts to move keypoint exceeded\n");
+            // printf("Maximum number attempts to move keypoint exceeded\n");
         }
     }
 
@@ -431,7 +456,7 @@ float SIFT2DStitcher::parabolicInterpolation(float y1, float y2, float y3) {
 }
 
 
-void SIFT2DStitcher::orient(const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints) {
+void SIFT2DStitcher::orient(const std::vector<std::vector<cv::Mat>>& gaussians, const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints) {
     const float scale_factor = 1.5;
     const int hist_bins_num = 36;
     const int kps_num = keypoints.size();
@@ -491,6 +516,10 @@ void SIFT2DStitcher::orient(const std::vector<std::vector<cv::Mat>>& DoG, std::v
         float right_val = HoG.at<float>(kp_id, (max_bin + 1) % hist_bins_num);
         kp.angle = (parabolicInterpolation(left_val, max_val, right_val) + max_bin) * 10;
 
+        if (kp.angle < 0) {
+            kp.angle += 360;
+        }
+
         // TEMPORARY FOR VISUALIZATION
         kp.size *= 3;
 
@@ -502,20 +531,23 @@ void SIFT2DStitcher::orient(const std::vector<std::vector<cv::Mat>>& DoG, std::v
 
             if (bin != max_bin && val > bin_threshold) {
                 // Interpolate peak with its two neighbours
-                float left_val = HoG.at<float>(kp_id, (bin - 1 + hist_bins_num) % hist_bins_num);
-                float right_val = HoG.at<float>(kp_id, (bin + 1) % hist_bins_num);
+                left_val = HoG.at<float>(kp_id, (bin - 1 + hist_bins_num) % hist_bins_num);
+                right_val = HoG.at<float>(kp_id, (bin + 1) % hist_bins_num);
                 float angle = (parabolicInterpolation(left_val, val, right_val) + bin) * 10;
+
+                if (angle < 0) {
+                    angle += 360;
+                }
 
                 // Create new keypoint on the same place with other orientation
                 keypoints.emplace_back(kp.pt, kp.size, angle, kp.response, kp.octave, kp.class_id);
-                printf("Angle: %f\n", angle);
             }
         }
     }
 }
 
 
-void SIFT2DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints, cv::Mat descriptors) {
+void SIFT2DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>>& gaussians, const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints, cv::Mat descriptors) {
     const int window_width = 4;
     const int region_width = 4;
     const int radius = window_width * region_width / 2;
@@ -535,16 +567,17 @@ void SIFT2DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>
         // const float cos_angle = std::cos(angle);
         // const float sin_angle = std::sin(angle);
         
-        cv::Point center = kp.pt / std::pow(2, kp.octave);
+        float scale = std::pow(2, kp.octave);
+        cv::Point center(std::round(kp.pt.x / scale), std::round(kp.pt.y / scale));
 
         const cv::Mat& img = gaussians[kp.octave][kp.class_id];
 
-        for (int y = center.y - radius; y <= center.y + radius; ++y) {
+        for (int y = center.y - radius; y < center.y + radius; ++y) {
             if (y <= 0 || y >= img.rows - 1) {
                 continue;
             }
 
-            for (int x = center.x - radius; x <= center.x + radius; ++x) {
+            for (int x = center.x - radius; x < center.x + radius; ++x) {
                 if (x <= 0 || x >= img.cols - 1) {
                     continue;
                 }
@@ -568,10 +601,10 @@ void SIFT2DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>
                 float a_weight = 1 - std::abs(std::fmod(orientation, degrees_per_bin) - degrees_per_bin / 2) / degrees_per_bin;
 
                 // Add weighted orientation to histogram
-                int hist_row = y / region_width;
-                int hist_col = x / region_width;
+                int hist_row = (y_loc + radius) / region_width;
+                int hist_col = (x_loc + radius) / region_width;
                 int hist_id = (hist_row * window_width + hist_col) * hist_bins_num + orientation * hist_bins_num / 360.0f;
-                descriptors.at<float>(kp_id, hist_id) += gauss_weight * x_weight * y_weight * a_weight * magnitude;
+                descriptors.at<float>(kp_id, 0) += gauss_weight * x_weight * y_weight * a_weight * magnitude;
             }
         }
 
