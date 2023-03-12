@@ -104,7 +104,7 @@ int SIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const 
 
 
 void SIFT2DStitcher::testDetection() {
-    cv::Mat origImg = cv::imread("../reconstructions/130.png");
+    cv::Mat origImg = cv::imread("../reconstructions/SIFT_test.png");
     cv::Mat_<float> img;
     cv::cvtColor(origImg, origImg, cv::COLOR_RGB2GRAY);
     origImg.convertTo(img, CV_32F);
@@ -520,7 +520,9 @@ void SIFT2DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>
     const int region_width = 4;
     const int radius = window_width * region_width / 2;
     const int hist_bins_num = 8;
+    const int degrees_per_bin = 360 / hist_bins_num;
     const int kps_num = keypoints.size();
+    const float descriptor_threshold = 0.2;
 
     descriptors = cv::Mat1f::zeros(kps_num, window_width * window_width * hist_bins_num);
 
@@ -551,14 +553,37 @@ void SIFT2DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>
                 float dy = img.at<float>(y + 1, x) - img.at<float>(y - 1, x);
                 float magnitude = std::sqrt(dx * dx + dy * dy);
                 float orientation = std::atan2(dy, dx) * 180.0f / M_PI;
-                float weight = std::exp(weight_factor * (x * x + y * y));
+                
+                // Rotate on keypoint orientation for rotational invariance
+                orientation = std::fmod(orientation + kp.angle, 360);
 
-                // Add orientation to histogram weighted with gaussian
+
+                int x_loc = x - center.x;
+                int y_loc = y - center.y;
+                float gauss_weight = std::exp(weight_factor * (x_loc * x_loc + y_loc * y_loc));
+
+                // Trilinear interpolation coefficients
+                float x_weight = 1 - std::abs(x_loc % region_width - region_width / 2) / static_cast<float>(region_width);
+                float y_weight = 1 - std::abs(y_loc % region_width - region_width / 2) / static_cast<float>(region_width);
+                float a_weight = 1 - std::abs(std::fmod(orientation, degrees_per_bin) - degrees_per_bin / 2) / degrees_per_bin;
+
+                // Add weighted orientation to histogram
                 int hist_row = y / region_width;
                 int hist_col = x / region_width;
                 int hist_id = (hist_row * window_width + hist_col) * hist_bins_num + orientation * hist_bins_num / 360.0f;
-                descriptors.at<float>(kp_id, hist_id) += weight * magnitude;
+                descriptors.at<float>(kp_id, hist_id) += gauss_weight * x_weight * y_weight * a_weight * magnitude;
             }
         }
+
+        // Descriptor normalization with truncating big values
+        cv::Mat descriptor = descriptors.row(kp_id);
+        cv::normalize(descriptor, descriptor);
+        cv::threshold(descriptor, descriptor, descriptor_threshold, descriptor_threshold, cv::THRESH_TRUNC);
+        cv::normalize(descriptor, descriptor);
+
+        // for (int i = 0; i < descriptor.cols; ++i) {
+        //     printf("%f ", descriptor.at<float>(i));
+        // }
+        // printf("]\n\n[");
     }
 }
