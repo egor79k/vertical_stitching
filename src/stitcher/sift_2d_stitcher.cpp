@@ -78,8 +78,8 @@ int SIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const 
         scan_2.getSlice<unsigned char>(charSliceImg, plane, slice_id, true);
         displayKeypoints(charSliceImg, keypoints_2);
 
-        // calculateDescriptors(gaussians_1, DoG_1, keypoints_1, descriptors_1);
-        // calculateDescriptors(gaussians_2, DoG_2, keypoints_2, descriptors_2);
+        calculateDescriptors(gaussians_1, DoG_1, keypoints_1, descriptors_1);
+        calculateDescriptors(gaussians_2, DoG_2, keypoints_2, descriptors_2);
 
         matcher.match(descriptors_1, descriptors_2, matches);
         totalMatches += matches.size();
@@ -105,8 +105,10 @@ int SIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const 
 
 
 void SIFT2DStitcher::testDetection() {
-    cv::Mat origImg_1 = cv::imread("../reconstructions/SIFT_test.png");
-    cv::Mat origImg_2 = cv::imread("../reconstructions/SIFT_test.png");
+    // cv::Mat origImg_1 = cv::imread("../reconstructions/SIFT_test.png");
+    // cv::Mat origImg_2 = cv::imread("../reconstructions/SIFT_test.png");
+    cv::Mat origImg_1 = cv::imread("../reconstructions/keyboard_1_1.jpg");
+    cv::Mat origImg_2 = cv::imread("../reconstructions/keyboard_2_1.jpg");
     cv::cvtColor(origImg_1, origImg_1, cv::COLOR_RGB2GRAY);
     cv::cvtColor(origImg_2, origImg_2, cv::COLOR_RGB2GRAY);
     cv::Mat_<float> img_1;
@@ -586,10 +588,9 @@ void SIFT2DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>
                 float dy = img.at<float>(y + 1, x) - img.at<float>(y - 1, x);
                 float magnitude = std::sqrt(dx * dx + dy * dy);
                 float orientation = std::atan2(dy, dx) * 180.0f / M_PI;
-                
+
                 // Rotate on keypoint orientation for rotational invariance
                 orientation = std::fmod(orientation + kp.angle, 360);
-
 
                 int x_loc = x - center.x;
                 int y_loc = y - center.y;
@@ -604,7 +605,7 @@ void SIFT2DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>
                 int hist_row = (y_loc + radius) / region_width;
                 int hist_col = (x_loc + radius) / region_width;
                 int hist_id = (hist_row * window_width + hist_col) * hist_bins_num + orientation * hist_bins_num / 360.0f;
-                descriptors.at<float>(kp_id, 0) += gauss_weight * x_weight * y_weight * a_weight * magnitude;
+                descriptors.at<float>(kp_id, hist_id) += gauss_weight * x_weight * y_weight * a_weight * magnitude;
             }
         }
 
