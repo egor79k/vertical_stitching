@@ -6,6 +6,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 add_library(stitcher
     stitcher.cpp
     sift_2d_stitcher.cpp
+    sift_3d_stitcher.cpp
     voxel_container.cpp
     )
 

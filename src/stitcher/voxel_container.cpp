@@ -101,6 +101,16 @@ bool VoxelContainer::isEmpty() {
 }
 
 
+float& VoxelContainer::at(const int x, const int y, const int z) {
+    return data[z * size.x * size.y + y * size.x + x];
+}
+
+
+const float& VoxelContainer::at(const int x, const int y, const int z) const {
+    return data[z * size.x * size.y + y * size.x + x];
+}
+
+
 const float* VoxelContainer::getData() const {
     return data;
 }
@@ -116,7 +126,7 @@ const VoxelContainer::Range& VoxelContainer::getRange() const {
 }
 
 
-bool VoxelContainer::readImages(const std::vector<std::string> &fileNames) {
+bool VoxelContainer::readImages(const std::vector<std::string>& fileNames) {
     data = new float[size.volume()];
 
     if (data == nullptr) {

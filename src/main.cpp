@@ -4,6 +4,7 @@
 #include "ui/mainwindow.h"
 #include "stitcher.h"
 #include "sift_2d_stitcher.h"
+#include "sift_3d_stitcher.h"
 
 
 int main(int argc, char *argv[]) {
@@ -13,6 +14,7 @@ int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
 
     AlgoList stitchAlgos = {
+        {std::make_shared<SIFT3DStitcher>(), "SIFT 3D"},
         {std::make_shared<SIFT2DStitcher>(), "SIFT 2D"},
         {std::make_shared<CVSIFT2DStitcher>(), "CV SIFT 2D"},
         {std::make_shared<OverlapDifferenceStitcher>(), "Intersection difference"},

@@ -34,6 +34,8 @@ public:
 
     bool isEmpty();
 
+    float& at(const int x, const int y, const int z);
+    const float& at(const int x, const int y, const int z) const;
     const float* getData() const;
     const Vector3& getSize() const;
     const Range& getRange() const;
@@ -46,7 +48,7 @@ public:
 //    QPixmap getZSlice(const int sliceId); // Transverse plane
 
 private:
-    bool readImages(const std::vector<std::string> &fileNames);
+    bool readImages(const std::vector<std::string>& fileNames);
 
     float* data = nullptr;
     Vector3 size = {0, 0, 0};
