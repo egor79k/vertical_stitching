@@ -110,16 +110,45 @@ int SIFT3DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const 
 
 void SIFT3DStitcher::gaussianBlur(const VoxelContainer& src, VoxelContainer& dst, const double sigma) {
     int radius = 3 * sigma;
-    size_t size = 2 * radius + 1;
-    float* data = new float[size * size * size];
-    VoxelContainer gaussian(data, {size, size, size}, {0, 1});
+    size_t gSize = 2 * radius + 1;
+    float* data = new float[gSize * gSize * gSize];
+    VoxelContainer gaussian(data, {gSize, gSize, gSize}, {0, 1});
     for (int z = -radius; z <= radius; ++z) {
         for (int y = -radius; y <= radius; ++y) {
             for (int x = -radius; x <= radius; ++x) {
-                gaussian.at(x, y, z) = std::exp(-(x * x + y * y + z * z) / (2 * sigma * sigma));
+                gaussian.at(x + radius, y + radius, z + radius) = std::exp(-(x * x + y * y + z * z) / (2 * sigma * sigma));
             }
         }
     }
+
+    VoxelContainer::Vector3 size = src.getSize();
+
+    for (int sz = 0; sz < size.z; ++sz) {
+        for (int sy = 0; sy < size.z; ++sy) {
+            for (int sx = 0; sx < size.z; ++sx) {
+                for (int z = -radius; z <= radius; ++z) {
+                    int lz = sz + z;
+                    if (lz < 0 || lz >= size.z) {
+                        continue;
+                    }
+                    for (int y = -radius; y <= radius; ++y) {
+                        int ly = sy + y;
+                        if (ly < 0 || ly >= size.y) {
+                            continue;
+                        }
+                        for (int x = -radius; x <= radius; ++x) {
+                            int lx = sx + x;
+                            if (lx < 0 || lx >= size.x) {
+                                continue;
+                            }
+                            dst.at(sx, sy, sz) = src.at(lx, ly, lz) * gaussian.at(x + radius, y + radius, z + radius);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     delete[] data;
 }
 
