@@ -28,6 +28,12 @@ VoxelContainer::VoxelContainer(float* _data, const Vector3& _size, const Range& 
     range(_range) {}
 
 
+VoxelContainer::VoxelContainer(const Vector3& _size, const Range& _range) :
+    data(new float[_size.volume()]),
+    size(_size),
+    range(_range) {}
+
+
 VoxelContainer::~VoxelContainer() {
     clear();
 }
@@ -86,6 +92,15 @@ bool VoxelContainer::loadFromJson(const std::string& fileName) {
 }
 
 
+void VoxelContainer::create(const Vector3& _size, const Range& _range) {
+    clear();
+    size = _size;
+    range = _range;
+    data = new float[size.volume()];
+    memset(data, 0, sizeof(float) * size.volume());
+}
+
+
 void VoxelContainer::clear() {
     if (data != nullptr) {
         delete[] data;
@@ -111,7 +126,7 @@ const float& VoxelContainer::at(const int x, const int y, const int z) const {
 }
 
 
-const float* VoxelContainer::getData() const {
+float* VoxelContainer::getData() const {
     return data;
 }
 
@@ -147,6 +162,26 @@ bool VoxelContainer::readImages(const std::vector<std::string>& fileNames) {
     }
 
     return true;
+}
+
+
+void substract(const VoxelContainer& a, const VoxelContainer& b, VoxelContainer& dst) {
+    VoxelContainer::Vector3 aSize = a.getSize();
+    VoxelContainer::Vector3 bSize = b.getSize();
+
+    if (aSize.x != bSize.x || aSize.y != bSize.y || aSize.z != bSize.z) {
+        return;
+    }
+
+    dst.create(aSize, a.getRange());
+
+    for (int z = 0; z < aSize.z; ++z) {
+        for (int y = 0; y < aSize.y; ++y) {
+            for (int x = 0; x < aSize.x; ++x) {
+                dst.at(x, y, z) = a.at(x, y, z) - b.at(x, y, z);
+            }
+        }
+    }
 }
 
 

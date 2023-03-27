@@ -108,24 +108,46 @@ int SIFT3DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const 
 }
 
 
+void SIFT3DStitcher::displaySlice(const VoxelContainer& src) {
+    TiffImage<float> sliceImg;
+    src.getSlice<float>(sliceImg, 0, src.getSize().x / 2, false);
+    cv::Mat_<float> slice(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData());
+    cv::normalize(slice, slice, 0, 1, cv::NORM_MINMAX);
+    // cv::namedWindow("Display Keypoints", cv::WINDOW_AUTOSIZE);
+    cv::imshow("Display slice", slice);
+    // static int unique_image_id = 0;
+    // cv::imwrite("oriented_keypoints_" + std::to_string(unique_image_id++) + ".png", rgbSlice);
+    cv::waitKey(0);
+    cv::destroyAllWindows();
+}
+
+
 void SIFT3DStitcher::gaussianBlur(const VoxelContainer& src, VoxelContainer& dst, const double sigma) {
-    int radius = 3 * sigma;
+    int radius = 2 * sigma;
     size_t gSize = 2 * radius + 1;
-    float* data = new float[gSize * gSize * gSize];
-    VoxelContainer gaussian(data, {gSize, gSize, gSize}, {0, 1});
+    // std::cout << "RS: " << radius << ' ' << sigma << std::endl;
+    VoxelContainer gaussian({gSize, gSize, gSize}, {0, 1});
+    float sum = 0;
+    
     for (int z = -radius; z <= radius; ++z) {
         for (int y = -radius; y <= radius; ++y) {
             for (int x = -radius; x <= radius; ++x) {
-                gaussian.at(x + radius, y + radius, z + radius) = std::exp(-(x * x + y * y + z * z) / (2 * sigma * sigma));
+                float val = std::exp(-(x * x + y * y + z * z) / (2 * sigma * sigma));
+                gaussian.at(x + radius, y + radius, z + radius) = val;
+                sum += val;
             }
         }
     }
 
     VoxelContainer::Vector3 size = src.getSize();
+    // std::cout << "SIZE: " << size.x << ' ' << size.y << ' ' << size.z << ' ' << size.volume() << std::endl;
+    dst.create(size, src.getRange());
+
+    // displaySlice(gaussian);
 
     for (int sz = 0; sz < size.z; ++sz) {
-        for (int sy = 0; sy < size.z; ++sy) {
-            for (int sx = 0; sx < size.z; ++sx) {
+        for (int sy = 0; sy < size.y; ++sy) {
+            for (int sx = 0; sx < size.x; ++sx) {
                 for (int z = -radius; z <= radius; ++z) {
                     int lz = sz + z;
                     if (lz < 0 || lz >= size.z) {
@@ -141,7 +163,7 @@ void SIFT3DStitcher::gaussianBlur(const VoxelContainer& src, VoxelContainer& dst
                             if (lx < 0 || lx >= size.x) {
                                 continue;
                             }
-                            dst.at(sx, sy, sz) = src.at(lx, ly, lz) * gaussian.at(x + radius, y + radius, z + radius);
+                            dst.at(sx, sy, sz) += src.at(lx, ly, lz) * gaussian.at(x + radius, y + radius, z + radius) / sum;
                         }
                     }
                 }
@@ -149,52 +171,64 @@ void SIFT3DStitcher::gaussianBlur(const VoxelContainer& src, VoxelContainer& dst
         }
     }
 
-    delete[] data;
+    // displaySlice(dst);
 }
 
 
 void SIFT3DStitcher::compressTwice(const VoxelContainer& src, VoxelContainer& dst) {
+    VoxelContainer::Vector3 srcSize = src.getSize();
+    VoxelContainer::Vector3 dstSize = {(srcSize.x + 1) / 2, (srcSize.y + 1) / 2, (srcSize.z + 1) / 2};
+    dst.create(dstSize, src.getRange());
 
+    for (int z = 0; z < dstSize.z; ++z) {
+        for (int y = 0; y < dstSize.y; ++y) {
+            for (int x = 0; x < dstSize.x; ++x) {
+                dst.at(x, y, z) = src.at(x * 2, y * 2, z * 2);
+            }
+        }
+    }
 }
 
 
 void SIFT3DStitcher::buildDoG(const VoxelContainer& vol, std::vector<std::vector<VoxelContainer>>& gaussians, std::vector<std::vector<VoxelContainer>>& DoG) {
-    const double k = std::pow(2, 1 / static_cast<double>(scale_levels_num));
+    const double k = std::pow(2, 1 / static_cast<double>(scaleLevelsNum));
     
-    gaussians.resize(octaves_num);
-    DoG.resize(octaves_num);
+    gaussians.resize(octavesNum);
+    DoG.resize(octavesNum);
 
-    for (int i = 0; i < octaves_num; ++i) {
-        gaussians[i].resize(blur_levels_num);
-        DoG[i].resize(blur_levels_num - 1);
+    for (int i = 0; i < octavesNum; ++i) {
+        gaussians[i].resize(blurLevelsNum);
+        DoG[i].resize(blurLevelsNum - 1);
     }
 
     gaussianBlur(vol, gaussians[0][0], sigma);
 
-    for (int octave = 0; octave < octaves_num; ++octave) {
-        for (int scale_level = 1; scale_level < blur_levels_num; ++scale_level) {
+    for (int octave = 0; octave < octavesNum; ++octave) {
+        for (int scale_level = 1; scale_level < blurLevelsNum; ++scale_level) {
             double kernel = sigma * std::pow(2, octave) * std::pow(k, scale_level);
             gaussianBlur(gaussians[octave][scale_level - 1], gaussians[octave][scale_level], kernel);
         }
 
-        if (octave < octaves_num - 1) {
-            compressTwice(gaussians[octave][scale_levels_num - 1], gaussians[octave + 1][0]);
+        if (octave < octavesNum - 1) {
+            compressTwice(gaussians[octave][scaleLevelsNum], gaussians[octave + 1][0]);
         }
     }
 
-    // for (int octave = 0; octave < octaves_num; ++ octave) {
-    //     for (int scale_level = 0; scale_level < blur_levels_num - 1; ++scale_level) {
-    //         DoG[octave][scale_level] = gaussians[octave][scale_level] - gaussians[octave][scale_level + 1];
-    //     }
-    // }
+    for (int octave = 0; octave < octavesNum; ++ octave) {
+        for (int scale_level = 0; scale_level < blurLevelsNum - 1; ++scale_level) {
+            // DoG[octave][scale_level] = gaussians[octave][scale_level] - gaussians[octave][scale_level + 1];
+            substract(gaussians[octave][scale_level], gaussians[octave][scale_level + 1], DoG[octave][scale_level]);
+            displaySlice(DoG[octave][scale_level]);
+        }
+    }
 }
 
 /*
 void SIFT3DStitcher::detect(const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints) {
     int scale = 1;
 
-    for (int octave = 0; octave < octaves_num; ++ octave) {
-        for (int scale_level = 1; scale_level < blur_levels_num - 2; ++scale_level) {
+    for (int octave = 0; octave < octavesNum; ++ octave) {
+        for (int scale_level = 1; scale_level < blurLevelsNum - 2; ++scale_level) {
             cv::Mat img_0 = DoG[octave][scale_level - 1];
             cv::Mat img_1 = DoG[octave][scale_level];
             cv::Mat img_2 = DoG[octave][scale_level + 1];
@@ -357,7 +391,7 @@ void SIFT3DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
                                                       grad.at<float>(1) * kp_shift.at<float>(1) +
                                                       grad.at<float>(2) * kp_shift.at<float>(2));
 
-                if (contrast * scale_levels_num < min_contrast) {
+                if (contrast * scaleLevelsNum < min_contrast) {
                     // printf("Low contrast keypoint discarded\n");
                     break;
                 }
@@ -372,7 +406,7 @@ void SIFT3DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
                 }
 
                 // (kp.octave + 1) ???
-                kp.size = sigma * std::pow(2, kp.class_id / static_cast<float>(scale_levels_num)) * std::pow(2, kp.octave + 1);
+                kp.size = sigma * std::pow(2, kp.class_id / static_cast<float>(scaleLevelsNum)) * std::pow(2, kp.octave + 1);
 
                 // Convert keypoint position to original scale space
                 kp.pt *= std::pow(2, kp.octave);
@@ -387,7 +421,7 @@ void SIFT3DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
                 1 > kp.pt.y ||
                 kp.pt.y >= kp_img.rows - 1 ||
                 1 > kp.class_id ||
-                kp.class_id >= blur_levels_num - 2) {
+                kp.class_id >= blurLevelsNum - 2) {
                 // printf("Keypoint moved outside of image\n");
                 break;
             }

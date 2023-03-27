@@ -224,7 +224,7 @@ void SIFT2DStitcher::buildDoG(cv::Mat img, std::vector<std::vector<cv::Mat>>& ga
         }
 
         if (octave < octaves_num - 1) {
-            cv::resize(gaussians[octave][scale_levels_num - 1], gaussians[octave + 1][0], cv::Size(), 0.5, 0.5, cv::INTER_NEAREST);
+            cv::resize(gaussians[octave][scale_levels_num], gaussians[octave + 1][0], cv::Size(), 0.5, 0.5, cv::INTER_NEAREST);
         }
     }
 

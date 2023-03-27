@@ -26,17 +26,19 @@ public:
     VoxelContainer() = default;
     VoxelContainer(const std::vector<std::string>& fileNames);
     VoxelContainer(float* _data, const Vector3& _size, const Range& _range);
+    VoxelContainer(const Vector3& _size, const Range& _range = {0, 0});
     ~VoxelContainer();
 
     bool loadFromImages(const std::vector<std::string>& fileNames);
     bool loadFromJson(const std::string& fileName);
+    void create(const Vector3& _size, const Range& _range = {0, 0});
     void clear();
 
     bool isEmpty();
 
     float& at(const int x, const int y, const int z);
     const float& at(const int x, const int y, const int z) const;
-    const float* getData() const;
+    float* getData() const;
     const Vector3& getSize() const;
     const Range& getRange() const;
 
@@ -54,6 +56,9 @@ private:
     Vector3 size = {0, 0, 0};
     Range range = {0, 0};
 };
+
+
+void substract(const VoxelContainer& a, const VoxelContainer& b, VoxelContainer& dst);
 
 
 template<typename T>
