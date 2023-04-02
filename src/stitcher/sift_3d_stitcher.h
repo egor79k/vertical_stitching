@@ -23,23 +23,24 @@ private:
     // };
 
     int determineOptimalOverlap(const VoxelContainer& scan_1, const VoxelContainer& scan_2);
+    void displayKeypoints(TiffImage<unsigned char>& sliceImg, const std::vector<cv::KeyPoint>& keypoints);
     void displaySlice(const VoxelContainer& src);
     void gaussianBlur(const VoxelContainer& src, VoxelContainer& dst, const double sigma);
     void compressTwice(const VoxelContainer& src, VoxelContainer& dst);
     void buildDoG(const VoxelContainer& vol, std::vector<std::vector<VoxelContainer>>& gaussians, std::vector<std::vector<VoxelContainer>>& DoG);
-    // void detect(const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints);
-    // void gradient(const std::vector<std::vector<cv::Mat>>& DoG, const cv::KeyPoint& kp, cv::Mat1f& result);
-    // void hessian(const std::vector<std::vector<cv::Mat>>& DoG, const cv::KeyPoint& kp, cv::Mat1f& result);
-    // void localize(const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints);
-    // float parabolicInterpolation(float y1, float y2, float y3);
-    // void orient(const std::vector<std::vector<cv::Mat>>& gaussians, const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints);
-    // void calculateDescriptors(const std::vector<std::vector<cv::Mat>>& gaussians, const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints, cv::Mat descriptors);
+    void detect(const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints);
+    void gradient(const std::vector<std::vector<cv::Mat>>& DoG, const cv::KeyPoint& kp, cv::Mat1f& result);
+    void hessian(const std::vector<std::vector<cv::Mat>>& DoG, const cv::KeyPoint& kp, cv::Mat1f& result);
+    void localize(const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints);
+    float parabolicInterpolation(float y1, float y2, float y3);
+    void orient(const std::vector<std::vector<cv::Mat>>& gaussians, const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints);
+    void calculateDescriptors(const std::vector<std::vector<cv::Mat>>& gaussians, const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints, cv::Mat descriptors);
 
     const int octavesNum = 2;
     const int scaleLevelsNum = 1;
     const int blurLevelsNum = scaleLevelsNum + 3;
     const double sigma = 1.6;
-    // std::vector<int> planes = {0, 1, 3, 4};
+    std::vector<int> planes = {0, 1, 3, 4};
 
     // std::vector<std::vector<cv::Mat>> gaussians;
     // std::vector<std::vector<cv::Mat>> DoG;

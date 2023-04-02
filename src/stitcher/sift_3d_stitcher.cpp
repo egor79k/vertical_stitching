@@ -31,72 +31,94 @@ int SIFT3DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const 
     // VoxelContainer::Vector3 size_1 = scan_1.getSize();
     // VoxelContainer::Vector3 size_2 = scan_2.getSize();
 
-    std::vector<std::vector<VoxelContainer>> gaussians_1, gaussians_2;
-    std::vector<std::vector<VoxelContainer>> DoG_1, DoG_2;
+    std::vector<std::vector<VoxelContainer>> scanGaussians_1;
+    std::vector<std::vector<VoxelContainer>> scanDoGs_1;
+    std::vector<std::vector<cv::Mat>> gaussians_1;
+    std::vector<std::vector<cv::Mat>> DoG_1;
+    std::vector<cv::KeyPoint> keypoints_1;
+    cv::Mat descriptors_1;
 
-    buildDoG(scan_1, gaussians_1, DoG_1);
-    // buildDoG(scan_2, gaussians_2, DoG_2);
+    buildDoG(scan_1, scanGaussians_1, scanDoGs_1);
 
-    // std::vector<cv::KeyPoint> keypoints_1, keypoints_2;
-    // cv::Mat descriptors_1, descriptors_2;
-    // cv::BFMatcher matcher;
-    // std::vector<cv::DMatch> matches;
-    // float distancesSum = 0;
-    // int totalMatches = 0;
+    // cv::Mat descriptors_1;
 
-    // for (int plane : planes) {
-    //     int slice_id = size_1.x / 2;
+    // slicesGaussians_1.resize(planes.size());
+    // slicesDoGs_1.resize(planes.size());
+    // keypoints_1.resize(planes.size());
 
-    //     scan_1.getSlice<float>(sliceImg_1, plane, slice_id, false);
-    //     scan_2.getSlice<float>(sliceImg_2, plane, slice_id, false);
+    TiffImage<float> sliceImg;
 
-    //     cv::Mat_<float> slice_1(size_1.z, size_1.y, sliceImg_1.getData());
-    //     cv::Mat_<float> slice_2(size_2.z, size_2.y, sliceImg_2.getData());
+    gaussians_1.resize(octavesNum);
+    DoG_1.resize(octavesNum);
 
-    //     DoG_1.clear();
-    //     DoG_2.clear();
-    //     keypoints_1.clear();
-    //     keypoints_2.clear();
-    //     descriptors_1.release();
-    //     descriptors_2.release();
-    //     matches.clear();
+    for (int octave = 0; octave < octavesNum; ++octave) {
+        gaussians_1[octave].resize(blurLevelsNum);
+        DoG_1[octave].resize(blurLevelsNum - 1);
+    }
 
-    //     buildDoG(slice_1, gaussians_1, DoG_1);
-    //     buildDoG(slice_2, gaussians_2, DoG_2);
+    for (int plane : planes) {
+        // DoG_1.clear();
+        // DoG_2.clear();
+        // keypoints_1.clear();
+        // keypoints_2.clear();
+        // descriptors_1.release();
+        // descriptors_2.release();
+        // matches.clear();
 
-    //     detect(DoG_1, keypoints_1);
-    //     detect(DoG_2, keypoints_2);
+        for (int octave = 0; octave < octavesNum; ++octave) {
+            for (int scale_level = 0; scale_level < blurLevelsNum; ++scale_level) {
+                VoxelContainer::Vector3 size = scanGaussians_1[octave][scale_level].getSize();
+                scanGaussians_1[octave][scale_level].getSlice<float>(sliceImg, plane, size.x / 2, false);
+                gaussians_1[octave][scale_level] = cv::Mat_<float>(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData());
+            }
 
-    //     printf("Finded %lu and %lu candidates to keypoints\n", keypoints_1.size(), keypoints_2.size());
+            for (int scale_level = 0; scale_level < blurLevelsNum - 1; ++scale_level) {
+                VoxelContainer::Vector3 size = scanDoGs_1[octave][scale_level].getSize();
+                scanDoGs_1[octave][scale_level].getSlice<float>(sliceImg, plane, size.x / 2, false);
+                DoG_1[octave][scale_level] = cv::Mat_<float>(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData());
+            }
+        }
 
-    //     localize(DoG_1, keypoints_1);
-    //     localize(DoG_2, keypoints_2);
 
-    //     orient(gaussians_1, DoG_1, keypoints_1);
-    //     orient(gaussians_2, DoG_2, keypoints_2);
+        // int slice_id = size_1.x / 2;
 
-    //     TiffImage<unsigned char> charSliceImg;
-    //     scan_1.getSlice<unsigned char>(charSliceImg, plane, slice_id, true);
-    //     displayKeypoints(charSliceImg, keypoints_1);
-    //     scan_2.getSlice<unsigned char>(charSliceImg, plane, slice_id, true);
-    //     displayKeypoints(charSliceImg, keypoints_2);
+        // scan_1.getSlice<float>(sliceImg_1, plane, slice_id, false);
+        // scan_2.getSlice<float>(sliceImg_2, plane, slice_id, false);
 
-    //     calculateDescriptors(gaussians_1, DoG_1, keypoints_1, descriptors_1);
-    //     calculateDescriptors(gaussians_2, DoG_2, keypoints_2, descriptors_2);
+        // cv::Mat_<float> slice_1(size_1.z, size_1.y, sliceImg_1.getData());
+        // cv::Mat_<float> slice_2(size_2.z, size_2.y, sliceImg_2.getData());
 
-    //     matcher.match(descriptors_1, descriptors_2, matches);
-    //     totalMatches += matches.size();
+        detect(DoG_1, keypoints_1);
+        // detect(DoG_2, keypoints_2);
+        printf("Finded %lu candidates to keypoints\n", keypoints_1.size());
 
-    //     printf("Matched %lu keypoints\n", matches.size());
+        localize(DoG_1, keypoints_1);
+        // localize(DoG_2, keypoints_2);
 
-    //     for (int i = 0; i < matches.size(); ++i) {
-    //         auto kp_1 = keypoints_1[matches[i].queryIdx].pt;
-    //         auto kp_2 = keypoints_2[matches[i].trainIdx].pt;
-    //         float distance = (kp_2.y - kp_1.y) / 2;
-    //         printf("Distance: %f\n", distance);
-    //         distancesSum += distance;
-    //     }
-    // }
+        orient(gaussians_1, DoG_1, keypoints_1);
+        // orient(gaussians_2, DoG_2, keypoints_2);
+
+        TiffImage<unsigned char> charSliceImg;
+        scan_1.getSlice<unsigned char>(charSliceImg, plane, scan_1.getSize().x / 2, true);
+        displayKeypoints(charSliceImg, keypoints_1);
+        // scan_2.getSlice<unsigned char>(charSliceImg, plane, slice_id, true);
+        // displayKeypoints(charSliceImg, keypoints_2);
+        // calculateDescriptors(gaussians_1, DoG_1, keypoints_1, descriptors_1);
+        // calculateDescriptors(gaussians_2, DoG_2, keypoints_2, descriptors_2);
+
+        // matcher.match(descriptors_1, descriptors_2, matches);
+        // totalMatches += matches.size();
+
+        // printf("Matched %lu keypoints\n", matches.size());
+
+        // for (int i = 0; i < matches.size(); ++i) {
+        //     auto kp_1 = keypoints_1[matches[i].queryIdx].pt;
+        //     auto kp_2 = keypoints_2[matches[i].trainIdx].pt;
+        //     float distance = (kp_2.y - kp_1.y) / 2;
+        //     printf("Distance: %f\n", distance);
+        //     distancesSum += distance;
+        // }
+    }
 
     // if (totalMatches == 0) {
     //     printf("No mathces :(\n");
@@ -105,6 +127,21 @@ int SIFT3DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const 
 
     // return distancesSum / totalMatches;
     return 0;
+}
+
+
+void SIFT3DStitcher::displayKeypoints(TiffImage<unsigned char>& sliceImg, const std::vector<cv::KeyPoint>& keypoints) {
+    cv::Mat_<unsigned char> slice(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData());
+    cv::Mat rgbSlice;
+    cv::cvtColor(slice, rgbSlice, cv::COLOR_GRAY2RGB);
+    cv::drawKeypoints(rgbSlice, keypoints, rgbSlice, cv::Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+    cv::resize(rgbSlice, rgbSlice, {0, 0}, 4, 4);
+    cv::namedWindow("Display Keypoints", cv::WINDOW_AUTOSIZE);
+    cv::imshow("Display Keypoints", rgbSlice);
+    // static int unique_image_id = 0;
+    // cv::imwrite("oriented_keypoints_" + std::to_string(unique_image_id++) + ".png", rgbSlice);
+    cv::waitKey(0);
+    cv::destroyAllWindows();
 }
 
 
@@ -146,6 +183,7 @@ void SIFT3DStitcher::gaussianBlur(const VoxelContainer& src, VoxelContainer& dst
     // displaySlice(gaussian);
 
     for (int sz = 0; sz < size.z; ++sz) {
+        std::cout << sz << " of " << size.z << std::endl;
         for (int sy = 0; sy < size.y; ++sy) {
             for (int sx = 0; sx < size.x; ++sx) {
                 for (int z = -radius; z <= radius; ++z) {
@@ -205,6 +243,7 @@ void SIFT3DStitcher::buildDoG(const VoxelContainer& vol, std::vector<std::vector
 
     for (int octave = 0; octave < octavesNum; ++octave) {
         for (int scale_level = 1; scale_level < blurLevelsNum; ++scale_level) {
+            std::cout << "octave: " << octave << " scale: " << scale_level << std::endl;
             double kernel = sigma * std::pow(2, octave) * std::pow(k, scale_level);
             gaussianBlur(gaussians[octave][scale_level - 1], gaussians[octave][scale_level], kernel);
         }
@@ -218,12 +257,12 @@ void SIFT3DStitcher::buildDoG(const VoxelContainer& vol, std::vector<std::vector
         for (int scale_level = 0; scale_level < blurLevelsNum - 1; ++scale_level) {
             // DoG[octave][scale_level] = gaussians[octave][scale_level] - gaussians[octave][scale_level + 1];
             substract(gaussians[octave][scale_level], gaussians[octave][scale_level + 1], DoG[octave][scale_level]);
-            displaySlice(DoG[octave][scale_level]);
+            // displaySlice(DoG[octave][scale_level]);
         }
     }
 }
 
-/*
+
 void SIFT3DStitcher::detect(const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints) {
     int scale = 1;
 
@@ -607,4 +646,3 @@ void SIFT3DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>
         // printf("]\n\n[");
     }
 }
-*/
