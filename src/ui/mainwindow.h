@@ -37,6 +37,7 @@ private slots:
     // Menu bar
     void on_actionSave_triggered();
     void on_actionSaveSlice_triggered();
+    void on_actionExportSlice_triggered();
 
 private:
     void updateSliceBounds(int plane);

@@ -22,6 +22,7 @@ public:
 
     void clear();
     void resize(const size_t new_width, const size_t new_height);
+    bool saveAs(const char* fileName) const;
     bool save(const char* fileName) const;
     static bool save(const char* fileName, T* data, const size_t width, const size_t height);
 
@@ -178,19 +179,17 @@ void TiffImage<T>::resize(const size_t new_width, const size_t new_height) {
 }
 
 
-// TODO: Make format export
-
 template<typename T>
-bool TiffImage<T>::save(const char *fileName) const {
+bool TiffImage<T>::saveAs(const char *fileName) const {
     cv::Mat_<T> img(height, width, data);
     return cv::imwrite(fileName, img);
 }
 
 
-// template<typename T>
-// bool TiffImage<T>::save(const char *fileName) const {
-//     return save(fileName, data, width, height);
-// }
+template<typename T>
+bool TiffImage<T>::save(const char *fileName) const {
+    return save(fileName, data, width, height);
+}
 
 
 template<typename T>

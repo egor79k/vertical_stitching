@@ -295,7 +295,38 @@ void MainWindow::on_actionSaveSlice_triggered() {
 
     int plane = ui->slicePlaneBox->currentIndex();
     int slice = ui->sliceSpinBox->value();
+    TiffImage<float> img;
+    stitchedScan->getSlice<float>(img, plane, slice, true);
+    img.save(fileName.toStdString().c_str());
+}
+
+
+void MainWindow::on_actionExportSlice_triggered() {
+    if (stitchedScan->isEmpty()) {
+        return;
+    }
+
+    QFileDialog dialog(this,
+        "Save file",
+        QDir::currentPath(),
+        "All files (*.*);;Images (*.png *.tiff *.jpg)");
+    
+    dialog.setDefaultSuffix(".tiff");
+    dialog.setAcceptMode(QFileDialog::AcceptSave);
+    
+    if (!dialog.exec()) {
+        return;
+    }
+    
+    const auto fileName = dialog.selectedFiles().front();
+
+    if (fileName.isEmpty()) {
+        return;
+    }
+
+    int plane = ui->slicePlaneBox->currentIndex();
+    int slice = ui->sliceSpinBox->value();
     TiffImage<uint8_t> img;
     stitchedScan->getSlice<uint8_t>(img, plane, slice, true);
-    img.save(fileName.toStdString().c_str());
+    img.saveAs(fileName.toStdString().c_str());
 }

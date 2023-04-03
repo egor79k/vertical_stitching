@@ -194,6 +194,7 @@
     </property>
     <addaction name="actionSave"/>
     <addaction name="actionSaveSlice"/>
+    <addaction name="actionExportSlice"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -212,6 +213,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+S</string>
+   </property>
+  </action>
+  <action name="actionExportSlice">
+   <property name="text">
+    <string>Export slice</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+E</string>
    </property>
   </action>
  </widget>
