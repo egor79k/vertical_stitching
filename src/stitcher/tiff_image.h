@@ -3,6 +3,8 @@
 
 
 #include <tinytiffreader.hxx>
+#include <tinytiffwriter.h>
+#include <tinytiff_tools.hxx>
 #include <opencv2/opencv.hpp>
 
 
@@ -21,6 +23,7 @@ public:
     void clear();
     void resize(const size_t new_width, const size_t new_height);
     bool save(const char* fileName) const;
+    static bool save(const char* fileName, T* data, const size_t width, const size_t height);
 
     T* getData();
     const T* getData() const;
@@ -175,10 +178,34 @@ void TiffImage<T>::resize(const size_t new_width, const size_t new_height) {
 }
 
 
+// TODO: Make format export
+
 template<typename T>
 bool TiffImage<T>::save(const char *fileName) const {
     cv::Mat_<T> img(height, width, data);
     return cv::imwrite(fileName, img);
+}
+
+
+// template<typename T>
+// bool TiffImage<T>::save(const char *fileName) const {
+//     return save(fileName, data, width, height);
+// }
+
+
+template<typename T>
+bool TiffImage<T>::save(const char* fileName, T* data, const size_t width, const size_t height) {
+    TinyTIFFWriterFile* tiff = TinyTIFFWriter_open(fileName, sizeof(T) * 8, TinyTIFF_SampleFormatFromType<T>().format, 1, width, height, TinyTIFFWriter_Greyscale);
+
+    if (!tiff) {
+        return false;
+    }
+
+    TinyTIFFWriter_writeImage(tiff, data);
+
+    TinyTIFFWriter_close(tiff);
+
+    return true;
 }
 
 

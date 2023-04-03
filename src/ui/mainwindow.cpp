@@ -248,15 +248,46 @@ void MainWindow::on_algorithmBox_currentIndexChanged(int index) {
     updateStitch();
 }
 
+
 void MainWindow::on_actionSave_triggered() {
-    QMessageBox::information(nullptr, "Save error", QString("Not implemented yet!"));
+    // if (stitchedScan->isEmpty()) {
+    //     return;
+    // }
+
+    QString dirName = QFileDialog::getSaveFileName(this,
+        "Save file",
+        QDir::currentPath(),
+        "All files (*.*)");
+
+    if (dirName.isEmpty()) {
+        return;
+    }
+
+    if (!stitchedScan->saveToJson(dirName.toStdString())) {
+        QMessageBox::information(nullptr, "Save error", QString("An error occured while image writing."));
+    }
+
 }
 
+
 void MainWindow::on_actionSaveSlice_triggered() {
-    QString fileName = QFileDialog::getSaveFileName(this,
+    if (stitchedScan->isEmpty()) {
+        return;
+    }
+
+    QFileDialog dialog(this,
         "Save file",
         QDir::currentPath(),
         "All files (*.*);;Images (*.png *.tiff *.jpg)");
+    
+    dialog.setDefaultSuffix(".tiff");
+    dialog.setAcceptMode(QFileDialog::AcceptSave);
+    
+    if (!dialog.exec()) {
+        return;
+    }
+    
+    const auto fileName = dialog.selectedFiles().front();
 
     if (fileName.isEmpty()) {
         return;

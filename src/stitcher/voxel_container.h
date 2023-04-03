@@ -31,6 +31,7 @@ public:
 
     bool loadFromImages(const std::vector<std::string>& fileNames);
     bool loadFromJson(const std::string& fileName);
+    bool saveToJson(const std::string& dirName);
     void create(const Vector3& _size, const Range& _range = {0, 0});
     void clear();
 
@@ -51,6 +52,7 @@ public:
 
 private:
     bool readImages(const std::vector<std::string>& fileNames);
+    bool writeImages(const std::string& dirName);
 
     float* data = nullptr;
     Vector3 size = {0, 0, 0};

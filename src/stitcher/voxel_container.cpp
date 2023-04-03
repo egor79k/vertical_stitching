@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <fstream>
 #include <limits>
+#include <sys/stat.h>
 #include <nlohmann/json.hpp>
 #include "voxel_container.h"
 
@@ -92,6 +93,40 @@ bool VoxelContainer::loadFromJson(const std::string& fileName) {
 }
 
 
+bool VoxelContainer::saveToJson(const std::string& dirName) {
+    json data;
+    data["width"] = size.x;
+    data["depth"] = size.y;
+    data["height"] = size.z;
+    data["range_min"] = range.min;
+    data["range_max"] = range.max;
+    data["format"] = ".tiff";
+
+    mkdir(dirName.c_str(), ACCESSPERMS);
+
+    std::string fileName = dirName;
+    
+    if (dirName.back() == '/') {
+        fileName += "info.json";
+    }
+    else {
+        fileName += "/info.json";
+    }
+
+    std::ofstream fs(fileName);
+
+    std::cout << dirName << ' ' << fileName << std::endl;
+    
+    if (!fs.is_open()) {
+        return false;
+    }
+
+    fs << data.dump(4) << std::endl;
+
+    return writeImages(dirName);
+}
+
+
 void VoxelContainer::create(const Vector3& _size, const Range& _range) {
     clear();
     size = _size;
@@ -157,6 +192,25 @@ bool VoxelContainer::readImages(const std::vector<std::string>& fileNames) {
         }
 
         if (width != size.x || height != size.y) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+bool VoxelContainer::writeImages(const std::string& dirName) {
+    std::string normDirName = dirName;
+    
+    if (normDirName.back() != '/') {
+        normDirName += "/";
+    }
+
+    for (int i = 0; i < size.z; ++i) {
+        std::string fileName = normDirName + std::to_string(i) + ".tiff";
+
+        if (!TiffImage<float>::save(fileName.c_str(), data + i * size.x * size.y, size.x, size.y)) {
             return false;
         }
     }
