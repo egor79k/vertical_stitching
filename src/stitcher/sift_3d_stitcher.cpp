@@ -140,7 +140,9 @@ void SIFT3DStitcher::displayKeypoints(TiffImage<unsigned char>& sliceImg, const 
     cv::imshow("Display Keypoints", rgbSlice);
     // static int unique_image_id = 0;
     // cv::imwrite("oriented_keypoints_" + std::to_string(unique_image_id++) + ".png", rgbSlice);
-    cv::waitKey(0);
+    // cv::waitKey(0);
+    int key = -1;
+    while (key != 'q') key = cv::waitKeyEx(100);
     cv::destroyAllWindows();
 }
 

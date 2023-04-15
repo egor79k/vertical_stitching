@@ -250,9 +250,9 @@ void MainWindow::on_algorithmBox_currentIndexChanged(int index) {
 
 
 void MainWindow::on_actionSave_triggered() {
-    // if (stitchedScan->isEmpty()) {
-    //     return;
-    // }
+    if (stitchedScan->isEmpty()) {
+        return;
+    }
 
     QString dirName = QFileDialog::getSaveFileName(this,
         "Save file",
