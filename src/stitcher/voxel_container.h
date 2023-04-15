@@ -22,6 +22,12 @@ public:
 
         float fit(float val, const Range nr) const;
     };
+
+    struct StitchParams {
+        int offsetX = 0;
+        int offsetY = 0;
+        int offsetZ = 0;
+    };
     
     VoxelContainer() = default;
     VoxelContainer(const std::vector<std::string>& fileNames);
@@ -42,6 +48,8 @@ public:
     float* getData() const;
     const Vector3& getSize() const;
     const Range& getRange() const;
+    const StitchParams& getStitchParams() const;
+    void setStitchParams(const StitchParams& params);
 
     template<typename T>
     void getSlice(TiffImage<T>& img, const int planeId, const int sliceId, bool fitToRange = true) const;
@@ -57,6 +65,8 @@ private:
     float* data = nullptr;
     Vector3 size = {0, 0, 0};
     Range range = {0, 0};
+    StitchParams trueParams;
+    StitchParams estimatedParams;
 };
 
 

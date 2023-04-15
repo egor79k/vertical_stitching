@@ -8,21 +8,21 @@
 
 class StitcherImpl {
 public:
-    virtual std::shared_ptr<VoxelContainer> stitch(const VoxelContainer& scan_1, const VoxelContainer& scan_2) = 0;
-    std::shared_ptr<VoxelContainer> stitch(const std::vector<std::shared_ptr<VoxelContainer>>& partialScans);
+    virtual std::shared_ptr<VoxelContainer> stitch(const VoxelContainer& scan_1, VoxelContainer& scan_2) = 0;
+    std::shared_ptr<VoxelContainer> stitch(std::vector<std::shared_ptr<VoxelContainer>>& partialScans);
     VoxelContainer::Range getStitchedRange(const VoxelContainer& scan_1, const VoxelContainer& scan_2);
 };
 
 
 class SimpleStitcher : public StitcherImpl {
 public:
-    std::shared_ptr<VoxelContainer> stitch(const VoxelContainer& scan_1, const VoxelContainer& scan_2) override;
+    std::shared_ptr<VoxelContainer> stitch(const VoxelContainer& scan_1, VoxelContainer& scan_2) override;
 };
 
 
 class OverlapDifferenceStitcher : public StitcherImpl {
 public:
-    std::shared_ptr<VoxelContainer> stitch(const VoxelContainer& scan_1, const VoxelContainer& scan_2) override;
+    std::shared_ptr<VoxelContainer> stitch(const VoxelContainer& scan_1, VoxelContainer& scan_2) override;
 
 private:
     float countDifference(const VoxelContainer& scan_1, const VoxelContainer& scan_2, const int overlap);
@@ -36,7 +36,7 @@ private:
 
 class CVSIFT2DStitcher : public StitcherImpl {
 public:
-    std::shared_ptr<VoxelContainer> stitch(const VoxelContainer& scan_1, const VoxelContainer& scan_2) override;
+    std::shared_ptr<VoxelContainer> stitch(const VoxelContainer& scan_1, VoxelContainer& scan_2) override;
 
 private:
     // void filterMatches(const std::vector<cv::DMatch>& matches, std::vector<cv::DMatch>& goodMatches);

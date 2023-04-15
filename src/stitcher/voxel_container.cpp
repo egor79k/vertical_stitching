@@ -81,6 +81,15 @@ bool VoxelContainer::loadFromJson(const std::string& fileName) {
     range.max = data["range_max"].get<float>();
     std::string format = data["format"].get<std::string>();
 
+    if (data.contains("part_begin")) {
+        trueParams.offsetZ = data["part_begin"].get<int>();
+        trueParams.offsetX = data["offset_x"].get<float>() * size.x;
+        trueParams.offsetY = data["offset_y"].get<float>() * size.y;
+    }
+    // else {
+    //     printf("Warning: reconstruction info doesn't contain distortions parameters.\n");
+    // }
+
     std::string imgPath = fileName.substr(0, fileName.find_last_of('/') + 1);
     std::vector<std::string> imgNames;
 
@@ -173,6 +182,16 @@ const VoxelContainer::Vector3& VoxelContainer::getSize() const {
 
 const VoxelContainer::Range& VoxelContainer::getRange() const {
     return range;
+}
+
+
+const VoxelContainer::StitchParams& VoxelContainer::getStitchParams() const {
+    return estimatedParams;
+}
+
+
+void VoxelContainer::setStitchParams(const VoxelContainer::StitchParams& params) {
+    estimatedParams = params;
 }
 
 

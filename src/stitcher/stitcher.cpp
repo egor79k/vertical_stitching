@@ -5,14 +5,25 @@
 #include "stitcher.h"
 
 
-std::shared_ptr<VoxelContainer> StitcherImpl::stitch(const std::vector<std::shared_ptr<VoxelContainer>>& partialScans) {
+std::shared_ptr<VoxelContainer> StitcherImpl::stitch(std::vector<std::shared_ptr<VoxelContainer>>& partialScans) {
     std::shared_ptr<VoxelContainer> result = partialScans[0];
+    result->setStitchParams(VoxelContainer::StitchParams());
+    VoxelContainer::StitchParams prev_params = VoxelContainer::StitchParams();
 
     for (int scan_id = 1; scan_id < partialScans.size(); ++scan_id) {
         result = stitch(*result, *partialScans[scan_id]);
+        
         if (result == nullptr) {
             return nullptr;
         }
+
+        auto params = partialScans[scan_id]->getStitchParams();
+
+        prev_params.offsetZ += params.offsetZ;
+        prev_params.offsetX += params.offsetX;
+        prev_params.offsetY += params.offsetY;
+
+        partialScans[scan_id]->setStitchParams(prev_params);
     }
 
     return result;
@@ -27,7 +38,7 @@ VoxelContainer::Range StitcherImpl::getStitchedRange(const VoxelContainer& scan_
 }
 
 
-std::shared_ptr<VoxelContainer> SimpleStitcher::stitch(const VoxelContainer& scan_1, const VoxelContainer& scan_2) {
+std::shared_ptr<VoxelContainer> SimpleStitcher::stitch(const VoxelContainer& scan_1, VoxelContainer& scan_2) {
     VoxelContainer::Vector3 size_1 = scan_1.getSize();
     VoxelContainer::Vector3 size_2 = scan_2.getSize();
     VoxelContainer::Vector3 gap = {size_1.x, size_1.y, 5};
@@ -60,7 +71,7 @@ const int OverlapDifferenceStitcher::maxOverlap = 30;
 const int OverlapDifferenceStitcher::offsetStep = 1;
 
 
-std::shared_ptr<VoxelContainer> OverlapDifferenceStitcher::stitch(const VoxelContainer& scan_1, const VoxelContainer& scan_2) {
+std::shared_ptr<VoxelContainer> OverlapDifferenceStitcher::stitch(const VoxelContainer& scan_1, VoxelContainer& scan_2) {
     VoxelContainer::Vector3 size_1 = scan_1.getSize();
     VoxelContainer::Vector3 size_2 = scan_2.getSize();
 
@@ -130,7 +141,7 @@ const int CVSIFT2DStitcher::maxOverlap = 30;
 const int CVSIFT2DStitcher::offsetStep = 1;
 
 
-std::shared_ptr<VoxelContainer> CVSIFT2DStitcher::stitch(const VoxelContainer& scan_1, const VoxelContainer& scan_2) {
+std::shared_ptr<VoxelContainer> CVSIFT2DStitcher::stitch(const VoxelContainer& scan_1, VoxelContainer& scan_2) {
     VoxelContainer::Vector3 size_1 = scan_1.getSize();
     VoxelContainer::Vector3 size_2 = scan_2.getSize();
 
