@@ -65,8 +65,8 @@
    <widget class="QComboBox" name="slicePlaneBox">
     <property name="geometry">
      <rect>
-      <x>390</x>
-      <y>360</y>
+      <x>490</x>
+      <y>430</y>
       <width>79</width>
       <height>24</height>
      </rect>
@@ -100,8 +100,8 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>390</x>
-      <y>340</y>
+      <x>490</x>
+      <y>410</y>
       <width>71</width>
       <height>16</height>
      </rect>
@@ -158,9 +158,9 @@
    <widget class="QComboBox" name="algorithmBox">
     <property name="geometry">
      <rect>
-      <x>490</x>
+      <x>390</x>
       <y>360</y>
-      <width>79</width>
+      <width>181</width>
       <height>24</height>
      </rect>
     </property>
@@ -168,7 +168,7 @@
    <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
-      <x>490</x>
+      <x>390</x>
       <y>340</y>
       <width>71</width>
       <height>16</height>
