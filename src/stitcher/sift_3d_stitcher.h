@@ -10,7 +10,6 @@
 
 class SIFT3DStitcher : public StitcherImpl {
 public:
-    std::shared_ptr<VoxelContainer> stitch(const VoxelContainer& scan_1, VoxelContainer& scan_2) override;
     // void testDetection();
 
 private:
@@ -22,7 +21,7 @@ private:
     //     int octave;
     // };
 
-    int determineOptimalOverlap(const VoxelContainer& scan_1, const VoxelContainer& scan_2);
+    void estimateStitchParams(const VoxelContainer& scan_1, VoxelContainer& scan_2);
     void displayKeypoints(TiffImage<unsigned char>& sliceImg, const std::vector<cv::KeyPoint>& keypoints);
     void displaySlice(const VoxelContainer& src);
     void gaussianBlur(const VoxelContainer& src, VoxelContainer& dst, const double sigma);

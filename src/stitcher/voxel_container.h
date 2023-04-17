@@ -24,9 +24,9 @@ public:
     };
 
     struct StitchParams {
-        int offsetX = 0;
-        int offsetY = 0;
-        int offsetZ = 0;
+        int offsetX;
+        int offsetY;
+        int offsetZ;
     };
     
     VoxelContainer() = default;

@@ -2,32 +2,7 @@
 #include "sift_2d_stitcher.h"
 
 
-std::shared_ptr<VoxelContainer> SIFT2DStitcher::stitch(const VoxelContainer& scan_1, VoxelContainer& scan_2) {
-    VoxelContainer::Vector3 size_1 = scan_1.getSize();
-    VoxelContainer::Vector3 size_2 = scan_2.getSize();
-
-    if (size_1.x != size_2.x || size_1.y != size_2.y) {
-        // QMessageBox::information(0, "Stitching error", "Failed to stitch scans due to different sizes.");
-        return nullptr;
-    }
-
-    int overlap = determineOptimalOverlap(scan_1, scan_2);
-
-    VoxelContainer::Vector3 stitchedSize = {size_1.x, size_1.y, size_1.z + size_2.z - overlap};
-
-    float* stitchedData = new float[stitchedSize.volume()];
-
-    int offsetVolume = overlap * size_2.x * size_2.y;
-    int scanVolume = size_2.x * size_2.y * (size_2.z - overlap);
-
-    memcpy(stitchedData, scan_1.getData(), size_1.volume() * sizeof(float));
-    memcpy(stitchedData + size_1.volume(), scan_2.getData() + offsetVolume, scanVolume * sizeof(float));
-
-    return std::make_shared<VoxelContainer>(stitchedData, stitchedSize, getStitchedRange(scan_1, scan_2));
-}
-
-
-int SIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const VoxelContainer& scan_2) {
+void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelContainer& scan_2) {
     VoxelContainer::Vector3 size_1 = scan_1.getSize();
     VoxelContainer::Vector3 size_2 = scan_2.getSize();
 
@@ -97,10 +72,10 @@ int SIFT2DStitcher::determineOptimalOverlap(const VoxelContainer& scan_1, const 
 
     if (totalMatches == 0) {
         printf("No mathces :(\n");
-        return 0;
+        return;
     }
 
-    return distancesSum / totalMatches;
+    scan_2.setEstStitchParams({0, 0, static_cast<int>(size_1.z - distancesSum / totalMatches)});
 }
 
 

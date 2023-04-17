@@ -14,7 +14,8 @@ std::shared_ptr<VoxelContainer> StitcherImpl::stitch(const VoxelContainer& scan_
         return nullptr;
     }
 
-    int overlap = determineOptimalOverlap(scan_1, scan_2);
+    estimateStitchParams(scan_1, scan_2);
+    int overlap = size_1.z - scan_2.getEstStitchParams().offsetZ;
 
     VoxelContainer::Vector3 stitchedSize = {size_1.x, size_1.y, size_1.z + size_2.z - overlap};
 
@@ -32,8 +33,8 @@ std::shared_ptr<VoxelContainer> StitcherImpl::stitch(const VoxelContainer& scan_
 
 std::shared_ptr<VoxelContainer> StitcherImpl::stitch(std::vector<std::shared_ptr<VoxelContainer>>& partialScans) {
     std::shared_ptr<VoxelContainer> result = partialScans[0];
-    result->setRefStitchParams(VoxelContainer::StitchParams());
-    VoxelContainer::StitchParams prev_params = VoxelContainer::StitchParams();
+    result->setEstStitchParams({0, 0, 0});
+    VoxelContainer::StitchParams prev_params = {0, 0, 0};
 
     for (int scan_id = 1; scan_id < partialScans.size(); ++scan_id) {
         result = stitch(*result, *partialScans[scan_id]);
@@ -42,13 +43,13 @@ std::shared_ptr<VoxelContainer> StitcherImpl::stitch(std::vector<std::shared_ptr
             return nullptr;
         }
 
-        auto params = partialScans[scan_id]->getRefStitchParams();
+        auto params = partialScans[scan_id]->getEstStitchParams();
 
         prev_params.offsetZ += params.offsetZ;
         prev_params.offsetX += params.offsetX;
         prev_params.offsetY += params.offsetY;
 
-        partialScans[scan_id]->setRefStitchParams(prev_params);
+        partialScans[scan_id]->setEstStitchParams(prev_params);
     }
 
     return result;

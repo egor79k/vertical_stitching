@@ -12,7 +12,7 @@ public:
     std::shared_ptr<VoxelContainer> stitch(std::vector<std::shared_ptr<VoxelContainer>>& partialScans);
 
 protected:
-    virtual int determineOptimalOverlap(const VoxelContainer& scan_1, const VoxelContainer& scan_2) = 0;
+    virtual void estimateStitchParams(const VoxelContainer& scan_1, VoxelContainer& scan_2) = 0;
     VoxelContainer::Range getStitchedRange(const VoxelContainer& scan_1, const VoxelContainer& scan_2);
 };
 
