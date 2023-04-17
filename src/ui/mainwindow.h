@@ -28,6 +28,7 @@ public:
     ~MainWindow();
 
 private slots:
+    void on_seamHighlightCheckBox_stateChanged(int state);
     void on_fileLoadButton_clicked();
     void on_sliceSpinBox_valueChanged(int slice);
     void on_slicePlaneBox_currentIndexChanged(int plane);
@@ -40,6 +41,7 @@ private slots:
     void on_actionExportSlice_triggered();
 
 private:
+    void updateSeamHighlight(int state);
     void updateSliceBounds(int plane);
     void updateDisplay(int plane, int slice);
     void updateStitch();
@@ -50,6 +52,7 @@ private:
 
     QGraphicsScene displayScene;
     QGraphicsPixmapItem currSliceItem;
+    std::vector<QGraphicsRectItem*> seamHighlights;
 
     std::vector<std::shared_ptr<VoxelContainer>> partialScans;
     std::shared_ptr<VoxelContainer> stitchedScan;
