@@ -82,9 +82,9 @@ bool VoxelContainer::loadFromJson(const std::string& fileName) {
     std::string format = data["format"].get<std::string>();
 
     if (data.contains("part_begin")) {
-        trueParams.offsetZ = data["part_begin"].get<int>();
-        trueParams.offsetX = data["offset_x"].get<float>() * size.x;
-        trueParams.offsetY = data["offset_y"].get<float>() * size.y;
+        referenceParams.offsetZ = data["part_begin"].get<int>();
+        referenceParams.offsetX = data["offset_x"].get<float>() * size.x;
+        referenceParams.offsetY = data["offset_y"].get<float>() * size.y;
     }
     // else {
     //     printf("Warning: reconstruction info doesn't contain distortions parameters.\n");
@@ -185,12 +185,22 @@ const VoxelContainer::Range& VoxelContainer::getRange() const {
 }
 
 
-const VoxelContainer::StitchParams& VoxelContainer::getStitchParams() const {
+const VoxelContainer::StitchParams& VoxelContainer::getRefStitchParams() const {
+    return referenceParams;
+}
+
+
+void VoxelContainer::setRefStitchParams(const VoxelContainer::StitchParams& params) {
+    referenceParams = params;
+}
+
+
+const VoxelContainer::StitchParams& VoxelContainer::getEstStitchParams() const {
     return estimatedParams;
 }
 
 
-void VoxelContainer::setStitchParams(const VoxelContainer::StitchParams& params) {
+void VoxelContainer::setEstStitchParams(const VoxelContainer::StitchParams& params) {
     estimatedParams = params;
 }
 

@@ -32,7 +32,7 @@ std::shared_ptr<VoxelContainer> StitcherImpl::stitch(const VoxelContainer& scan_
 
 std::shared_ptr<VoxelContainer> StitcherImpl::stitch(std::vector<std::shared_ptr<VoxelContainer>>& partialScans) {
     std::shared_ptr<VoxelContainer> result = partialScans[0];
-    result->setStitchParams(VoxelContainer::StitchParams());
+    result->setRefStitchParams(VoxelContainer::StitchParams());
     VoxelContainer::StitchParams prev_params = VoxelContainer::StitchParams();
 
     for (int scan_id = 1; scan_id < partialScans.size(); ++scan_id) {
@@ -42,13 +42,13 @@ std::shared_ptr<VoxelContainer> StitcherImpl::stitch(std::vector<std::shared_ptr
             return nullptr;
         }
 
-        auto params = partialScans[scan_id]->getStitchParams();
+        auto params = partialScans[scan_id]->getRefStitchParams();
 
         prev_params.offsetZ += params.offsetZ;
         prev_params.offsetX += params.offsetX;
         prev_params.offsetY += params.offsetY;
 
-        partialScans[scan_id]->setStitchParams(prev_params);
+        partialScans[scan_id]->setRefStitchParams(prev_params);
     }
 
     return result;

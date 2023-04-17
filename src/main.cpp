@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
         {std::make_shared<SIFT3DStitcher>(), "SIFT 3D"},
         {std::make_shared<SIFT2DStitcher>(), "SIFT 2D"},
         {std::make_shared<OpenCVSIFT2DStitcher>(), "CV SIFT 2D"},
-        {std::make_shared<DirectAlignmentStitcher>(), "Intersection difference"},
+        {std::make_shared<L2DirectAlignmentStitcher>(), "Intersection difference"},
         {std::make_shared<SeparationStitcher>(), "Without overlay"}};
 
     MainWindow w(&stitchAlgos);
