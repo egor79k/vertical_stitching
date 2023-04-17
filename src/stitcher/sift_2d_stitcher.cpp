@@ -70,12 +70,18 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
         }
     }
 
-    if (totalMatches == 0) {
+    int optimalOverlap = 0;
+
+    if (totalMatches > 0) {
+        optimalOverlap = distancesSum / totalMatches;
+    }
+    else {
         printf("No mathces :(\n");
-        return;
     }
 
-    scan_2.setEstStitchParams({0, 0, static_cast<int>(size_1.z - distancesSum / totalMatches)});
+    printf("%s %i %s %f/%i\n", "Optimal overlap:", optimalOverlap, "DST:", distancesSum, totalMatches);
+
+    scan_2.setEstStitchParams({0, 0, static_cast<int>(size_1.z) - optimalOverlap});
 }
 
 

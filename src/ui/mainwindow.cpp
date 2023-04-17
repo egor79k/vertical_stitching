@@ -38,6 +38,49 @@ MainWindow::~MainWindow() {
 }
 
 
+void MainWindow::updateSeamHighlight(int state) {
+    // Clear all existing highlight
+    for (QGraphicsRectItem* rectItem : seamHighlights) {
+        displayScene.removeItem(rectItem);
+    }
+
+    seamHighlights.clear();
+
+    int plane = ui->slicePlaneBox->currentIndex();
+
+    // If checked create new highlight
+    if (state > 0 && partialScans.size() > 1 && plane != 2) {
+        int width = 0;
+
+        if (plane == 1) {
+            width = partialScans[0]->getSize().x;
+        }
+        else {
+            width = partialScans[0]->getSize().y;
+        }
+
+        for (int i = 1; i < partialScans.size(); ++i) {
+            auto prevSize = partialScans[i - 1]->getSize();
+            int prevOffset = partialScans[i - 1]->getEstStitchParams().offsetZ;
+            int currOffset = partialScans[i]->getEstStitchParams().offsetZ;
+            int seamStart = prevOffset + prevSize.z;
+            
+            if (seamStart < currOffset) {
+                qDebug() << "Overlap:" << seamStart << currOffset - seamStart;
+                QBrush brush = QBrush({255, 255, 255, 255});
+                QGraphicsRectItem* rectItem = displayScene.addRect(0, seamStart, width, currOffset - seamStart, QPen({0, 0, 0, 0}), brush);
+                seamHighlights.push_back(rectItem);
+            }
+            else {
+                QBrush brush = QBrush({255, 0, 0, 40});
+                QGraphicsRectItem* rectItem = displayScene.addRect(0, currOffset, width, seamStart - currOffset, QPen({0, 0, 0, 0}), brush);
+                seamHighlights.push_back(rectItem);
+            }
+        }
+    }
+}
+
+
 void MainWindow::updateSliceBounds(int plane) {
     if (stitchedScan->isEmpty()) {
         ui->sliceSpinBox->setMaximum(0);
@@ -87,6 +130,7 @@ void MainWindow::updateStitch() {
     int plane = ui->slicePlaneBox->currentIndex();
     updateSliceBounds(plane);
     updateDisplay(plane, ui->sliceSpinBox->value());
+    updateSeamHighlight(ui->seamHighlightCheckBox->isChecked());
 }
 
 
@@ -213,6 +257,7 @@ void MainWindow::on_sliceSpinBox_valueChanged(int slice) {
 void MainWindow::on_slicePlaneBox_currentIndexChanged(int plane) {
     updateSliceBounds(plane);
     updateDisplay(plane, ui->sliceSpinBox->value());
+    updateSeamHighlight(ui->seamHighlightCheckBox->isChecked());
 }
 
 
@@ -330,3 +375,9 @@ void MainWindow::on_actionExportSlice_triggered() {
     stitchedScan->getSlice<uint8_t>(img, plane, slice, true);
     img.saveAs(fileName.toStdString().c_str());
 }
+
+
+void MainWindow::on_seamHighlightCheckBox_stateChanged(int state) {
+    updateSeamHighlight(state);
+}
+
