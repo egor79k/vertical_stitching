@@ -26,7 +26,7 @@ std::shared_ptr<VoxelContainer> SeparationStitcher::stitch(const VoxelContainer&
 
     scan_2.setEstStitchParams({0, 0, static_cast<int>(size_1.z) + 5});
 
-    return std::make_shared<VoxelContainer>(stitchedData, stitchedSize, stitchedRange);
+    return std::make_shared<VoxelContainer>(stitchedData, stitchedSize, stitchedRange, scan_1.getRefStitchParams());
 }
 
 

@@ -15,7 +15,11 @@ std::shared_ptr<VoxelContainer> StitcherImpl::stitch(const VoxelContainer& scan_
     }
 
     estimateStitchParams(scan_1, scan_2);
-    int overlap = size_1.z - scan_2.getEstStitchParams().offsetZ;
+    auto params_1 = scan_1.getEstStitchParams();
+    auto params_2 = scan_2.getEstStitchParams();
+    int overlap = size_1.z - params_2.offsetZ;
+    // int offsetY = params_2.offsetY - params_1.offsetY;
+    // int offsetX = params_2.offsetX - params_1.offsetX;
 
     VoxelContainer::Vector3 stitchedSize = {size_1.x, size_1.y, size_1.z + size_2.z - overlap};
 
@@ -23,18 +27,37 @@ std::shared_ptr<VoxelContainer> StitcherImpl::stitch(const VoxelContainer& scan_
 
     int offsetVolume = overlap * size_2.x * size_2.y;
     int scanVolume = size_2.x * size_2.y * (size_2.z - overlap);
+    int layerSpace = size_1.x * size_1.y;
+
+    float* data_2 = scan_2.getData();
+
+    auto stitchedRange = getStitchedRange(scan_1, scan_2);
 
     memcpy(stitchedData, scan_1.getData(), size_1.volume() * sizeof(float));
-    memcpy(stitchedData + size_1.volume(), scan_2.getData() + offsetVolume, scanVolume * sizeof(float));
+    // memcpy(stitchedData + size_1.volume(), data_2 + offsetVolume, scanVolume * sizeof(float));
 
-    return std::make_shared<VoxelContainer>(stitchedData, stitchedSize, getStitchedRange(scan_1, scan_2));
+    for (int z = 0; z < size_2.z - overlap; ++z) {
+        for (int y = 0; y < size_2.y; ++y) {
+            for (int x = 0; x < size_2.x; ++x) {
+                int x2 = x + params_2.offsetX;
+                int y2 = y + params_2.offsetY;
+                if (x2 >= 0 || x2 < size_2.x || y2 >= 0 || y2 < size_2.y) {
+                    stitchedData[(z + size_1.z) * layerSpace + y * size_1.x + x] = data_2[(z + overlap) * layerSpace + y2 * size_1.x + x2];
+                }
+                else {
+                    stitchedData[(z + size_1.z) * layerSpace + y * size_1.x + x] = stitchedRange.min;
+                }
+            }
+        }
+    }
+
+    return std::make_shared<VoxelContainer>(stitchedData, stitchedSize, stitchedRange, scan_1.getRefStitchParams());
 }
 
 
 std::shared_ptr<VoxelContainer> StitcherImpl::stitch(std::vector<std::shared_ptr<VoxelContainer>>& partialScans) {
     std::shared_ptr<VoxelContainer> result = partialScans[0];
     result->setEstStitchParams({0, 0, 0});
-    // VoxelContainer::StitchParams prev_params = {0, 0, 0};
 
     for (int scan_id = 1; scan_id < partialScans.size(); ++scan_id) {
         result = stitch(*result, *partialScans[scan_id]);
@@ -42,16 +65,8 @@ std::shared_ptr<VoxelContainer> StitcherImpl::stitch(std::vector<std::shared_ptr
         if (result == nullptr) {
             return nullptr;
         }
-
-        // auto params = partialScans[scan_id]->getEstStitchParams();
-
-        // prev_params.offsetZ += params.offsetZ;
-        // prev_params.offsetX += params.offsetX;
-        // prev_params.offsetY += params.offsetY;
-
-        // partialScans[scan_id]->setEstStitchParams(prev_params);
     }
-
+    
     return result;
 }
 

@@ -31,7 +31,7 @@ public:
     
     VoxelContainer() = default;
     VoxelContainer(const std::vector<std::string>& fileNames);
-    VoxelContainer(float* _data, const Vector3& _size, const Range& _range);
+    VoxelContainer(float* _data, const Vector3& _size, const Range& _range, const StitchParams& _refParams);
     VoxelContainer(const Vector3& _size, const Range& _range = {0, 0});
     ~VoxelContainer();
 
@@ -67,8 +67,8 @@ private:
     float* data = nullptr;
     Vector3 size = {0, 0, 0};
     Range range = {0, 0};
-    StitchParams referenceParams;
-    StitchParams estimatedParams;
+    StitchParams referenceParams = {0, 0, 0};
+    StitchParams estimatedParams = {0, 0, 0};
 };
 
 

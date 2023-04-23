@@ -1,4 +1,6 @@
 #include "opencv_sift_2d_stitcher.h"
+#include <algorithm>
+// #include <>
 
 
 void filterMatches(const std::vector<cv::DMatch>& matches, std::vector<cv::DMatch>& goodMatches) {
@@ -25,10 +27,46 @@ void filterMatches(const std::vector<cv::DMatch>& matches, std::vector<cv::DMatc
 }
 
 
+float getMedian(std::vector<float>& array) {
+    int size = array.size();
+    
+    if (size == 0) {
+        return 0;
+    }
+    
+    if (size < 3) {
+        float sum = 0;
+        for (auto val : array) {
+            sum += val;
+        }
+        return sum / size;
+    }
+
+    std::sort(array.begin(), array.end());
+
+    float min = 10000;
+    int min_loc = size / 2;
+
+    for (int i = 0; i < size; ++i) {
+        float val = std::abs(array[i]);
+        if (val < min) {
+            min = val;
+            min_loc = i;
+        }
+    }
+
+    int mid = (min_loc + size / 2) / 2;
+
+    return (array[mid - 1] + array[mid] + array[mid + 1]) / 3;
+}
+
+
 void OpenCVSIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelContainer& scan_2) {
     int totalMatches = 0;
     float distancesSum = 0;
-
+    std::vector<float> offsetsX;
+    std::vector<float> offsetsY;
+    
     VoxelContainer::Vector3 size_1 = scan_1.getSize();
     VoxelContainer::Vector3 size_2 = scan_2.getSize();
 
@@ -78,6 +116,13 @@ void OpenCVSIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, Vo
             printf("distance: %f\n", distance);
             distancesSum += distance;
 
+            if (plane == 0) {
+                offsetsY.push_back(kp_2.x - kp_1.x);
+            }
+            else if (plane == 1) {
+                offsetsX.push_back(kp_2.x - kp_1.x);
+            }
+
             // int mId_1 = goodMatches[i].queryIdx;
             // int mId_2 = goodMatches[i].trainIdx;
 
@@ -115,9 +160,14 @@ void OpenCVSIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, Vo
         optimalOverlap = distancesSum / totalMatches;
     }
 
+    int offsetX = getMedian(offsetsX);
+    int offsetY = getMedian(offsetsY);
+
+    printf("Offsets are %i %i. Should be %i %i\n", offsetX, offsetY, scan_2.getRefStitchParams().offsetX - scan_1.getRefStitchParams().offsetX, scan_2.getRefStitchParams().offsetY - scan_1.getRefStitchParams().offsetY);
+
     printf("%s %i %s %f/%i\n", "Optimal overlap:", optimalOverlap, "DST:", distancesSum, totalMatches);
 
-    scan_2.setEstStitchParams({0, 0, static_cast<int>(size_1.z) - optimalOverlap});
+    scan_2.setEstStitchParams({offsetX, offsetY, static_cast<int>(size_1.z) - optimalOverlap});
 }
 
 

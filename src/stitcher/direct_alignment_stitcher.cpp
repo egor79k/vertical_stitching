@@ -51,6 +51,7 @@ void DirectAlignmentStitcher::estimateStitchParams(const VoxelContainer& scan_1,
     printf("%s %i\n", "Optimal overlap:", optimalOverlap);
 
     scan_2.setEstStitchParams({0, 0, height_1 - optimalOverlap});
+    // scan_2.getRefStitchParams().offsetX - scan_1.getRefStitchParams().offsetX, scan_2.getRefStitchParams().offsetY - scan_1.getRefStitchParams().offsetY
 }
 
 
