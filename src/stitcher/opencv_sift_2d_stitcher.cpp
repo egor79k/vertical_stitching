@@ -15,10 +15,10 @@ void filterMatches(const std::vector<cv::DMatch>& matches, std::vector<cv::DMatc
 
     for (int i = 0; i < matches.size(); i++)
     {
-        if (matches[i].distance < 3 * min_dist)
-        {
-            goodMatches.push_back(matches[i]);
-        }
+        // if (matches[i].distance < 3 * min_dist)
+        // {
+        goodMatches.push_back(matches[i]);
+        // }
     }
 
     // goodMatches = matches;
