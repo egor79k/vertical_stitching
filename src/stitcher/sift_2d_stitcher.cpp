@@ -6,6 +6,14 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
     VoxelContainer::Vector3 size_1 = scan_1.getSize();
     VoxelContainer::Vector3 size_2 = scan_2.getSize();
 
+    const int refOffsetZ = scan_2.getRefStitchParams().offsetZ;
+    const int maxRefDeviation = 5;
+    int maxOverlap = size_1.z / 2;
+
+    if (refOffsetZ > 0) {
+        maxOverlap = size_1.z - refOffsetZ + maxRefDeviation;
+    }
+
     TiffImage<float> sliceImg_1, sliceImg_2;
     std::vector<std::vector<cv::Mat>> gaussians_1, gaussians_2;
     std::vector<std::vector<cv::Mat>> DoG_1, DoG_2;
@@ -22,8 +30,11 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
         scan_1.getSlice<float>(sliceImg_1, plane, slice_id, false);
         scan_2.getSlice<float>(sliceImg_2, plane, slice_id, false);
 
-        cv::Mat_<float> slice_1(size_1.z, size_1.y, sliceImg_1.getData());
-        cv::Mat_<float> slice_2(size_2.z, size_2.y, sliceImg_2.getData());
+        cv::Mat_<float> slice_1(maxOverlap, size_1.y, sliceImg_1.getData() + (size_1.z - maxOverlap) * size_1.y);
+        cv::Mat_<float> slice_2(maxOverlap, size_2.y, sliceImg_2.getData());
+
+        // cv::Mat_<float> slice_1(size_1.z, size_1.y, sliceImg_1.getData());
+        // cv::Mat_<float> slice_2(size_2.z, size_2.y, sliceImg_2.getData());
 
         DoG_1.clear();
         DoG_2.clear();
@@ -44,22 +55,41 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
         localize(DoG_1, keypoints_1);
         localize(DoG_2, keypoints_2);
 
+        printf("Localized %lu and %lu keypoints\n", keypoints_1.size(), keypoints_2.size());
+
         orient(gaussians_1, DoG_1, keypoints_1);
         orient(gaussians_2, DoG_2, keypoints_2);
 
-        TiffImage<unsigned char> charSliceImg;
-        scan_1.getSlice<unsigned char>(charSliceImg, plane, slice_id, true);
-        displayKeypoints(charSliceImg, keypoints_1);
-        scan_2.getSlice<unsigned char>(charSliceImg, plane, slice_id, true);
-        displayKeypoints(charSliceImg, keypoints_2);
+        printf("Oriented %lu and %lu keypoints\n", keypoints_1.size(), keypoints_2.size());
+
+        // displayKeypoints(slice_1, keypoints_1);
+        // displayKeypoints(slice_2, keypoints_2);
 
         calculateDescriptors(gaussians_1, DoG_1, keypoints_1, descriptors_1);
         calculateDescriptors(gaussians_2, DoG_2, keypoints_2, descriptors_2);
+
+        printf("\n%dx%d  %dx%d\n", descriptors_1.rows, descriptors_1.cols, descriptors_2.rows, descriptors_2.cols);
+        for (int i = 0; i < descriptors_1.rows; ++i) {
+            for (int j = 0; j < descriptors_1.cols; ++j) {
+                printf("%f ", descriptors_1.at<float>(i, j));
+            }
+            puts("\n\n");
+        }
+        puts("\n---\n");
+        for (int i = 0; i < descriptors_2.rows; ++i) {
+            for (int j = 0; j < descriptors_2.cols; ++j) {
+                printf("%f ", descriptors_2.at<float>(i, j));
+            }
+            puts("\n\n");
+        }
+        puts("\n===\n");
 
         matcher.match(descriptors_1, descriptors_2, matches);
         totalMatches += matches.size();
 
         printf("Matched %lu keypoints\n", matches.size());
+
+        displayMatches(slice_1, slice_2, keypoints_1, keypoints_2, matches);
 
         for (int i = 0; i < matches.size(); ++i) {
             auto kp_1 = keypoints_1[matches[i].queryIdx].pt;
@@ -157,15 +187,37 @@ void SIFT2DStitcher::testDetection() {
 }
 
 
-void SIFT2DStitcher::displayKeypoints(TiffImage<unsigned char>& sliceImg, const std::vector<cv::KeyPoint>& keypoints) {
-    cv::Mat_<unsigned char> slice(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData());
+void SIFT2DStitcher::displayKeypoints(const cv::Mat& slice, const std::vector<cv::KeyPoint>& keypoints) {
+    // cv::Mat_<unsigned char> slice(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData());
+    cv::Mat graySlice;
     cv::Mat rgbSlice;
-    cv::cvtColor(slice, rgbSlice, cv::COLOR_GRAY2RGB);
+    cv::normalize(slice, graySlice, 0, 255, cv::NORM_MINMAX);
+    graySlice.convertTo(graySlice, CV_8U);
+    cv::cvtColor(graySlice, rgbSlice, cv::COLOR_GRAY2RGB);
     cv::drawKeypoints(rgbSlice, keypoints, rgbSlice, cv::Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
     cv::namedWindow("Display Keypoints", cv::WINDOW_AUTOSIZE);
     cv::imshow("Display Keypoints", rgbSlice);
     // static int unique_image_id = 0;
     // cv::imwrite("oriented_keypoints_" + std::to_string(unique_image_id++) + ".png", rgbSlice);
+    cv::waitKey(0);
+    cv::destroyAllWindows();
+}
+
+
+void SIFT2DStitcher::displayMatches(const cv::Mat& slice_1, const cv::Mat& slice_2, const std::vector<cv::KeyPoint>& keypoints_1, const std::vector<cv::KeyPoint>& keypoints_2, const std::vector<cv::DMatch>& matches) {
+    // cv::Mat_<unsigned char> slice(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData());
+    cv::Mat graySlice_1, graySlice_2, rgbSlice_1, rgbSlice_2;
+    cv::normalize(slice_1, graySlice_1, 0, 255, cv::NORM_MINMAX);
+    cv::normalize(slice_2, graySlice_2, 0, 255, cv::NORM_MINMAX);
+    graySlice_1.convertTo(graySlice_1, CV_8U);
+    graySlice_2.convertTo(graySlice_2, CV_8U);
+    cv::cvtColor(graySlice_1, rgbSlice_1, cv::COLOR_GRAY2RGB);
+    cv::cvtColor(graySlice_2, rgbSlice_2, cv::COLOR_GRAY2RGB);
+    // cv::drawKeypoints(rgbSlice, keypoints, rgbSlice, cv::Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+    cv::Mat matchResult;
+    cv::drawMatches(rgbSlice_1, keypoints_1, rgbSlice_2, keypoints_2, matches, matchResult);
+    cv::namedWindow("Display Matches", cv::WINDOW_AUTOSIZE);
+    cv::imshow("Display Matches", matchResult);
     cv::waitKey(0);
     cv::destroyAllWindows();
 }
@@ -530,7 +582,7 @@ void SIFT2DStitcher::orient(const std::vector<std::vector<cv::Mat>>& gaussians, 
 }
 
 
-void SIFT2DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>>& gaussians, const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints, cv::Mat descriptors) {
+void SIFT2DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>>& gaussians, const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints, cv::Mat& descriptors) {
     const int window_width = 4;
     const int region_width = 4;
     const int radius = window_width * region_width / 2;

@@ -551,7 +551,7 @@ void SIFT3DStitcher::orient(const std::vector<std::vector<cv::Mat>>& gaussians, 
 }
 
 
-void SIFT3DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>>& gaussians, const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints, cv::Mat descriptors) {
+void SIFT3DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>>& gaussians, const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints, cv::Mat& descriptors) {
     const int window_width = 4;
     const int region_width = 4;
     const int radius = window_width * region_width / 2;

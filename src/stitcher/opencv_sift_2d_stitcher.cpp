@@ -55,9 +55,10 @@ float getMedian(std::vector<float>& array) {
         }
     }
 
-    int mid = (min_loc + size / 2) / 2;
+    min_loc = (min_loc + size / 2) / 2;
 
-    return (array[mid - 1] + array[mid] + array[mid + 1]) / 3;
+    return (array[min_loc - 1] + array[min_loc] + array[min_loc + 1]) / 3;
+    // return array[min_loc];
 }
 
 
