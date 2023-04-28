@@ -6,6 +6,7 @@
 
 class OpenCVSIFT2DStitcher : public StitcherImpl {
 protected:
+    float getMedian(std::vector<float>& array);
     void estimateStitchParams(const VoxelContainer& scan_1, VoxelContainer& scan_2) override;
 };
 
