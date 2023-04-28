@@ -10,6 +10,7 @@
 
 class SIFT2DStitcher : public StitcherImpl {
 public:
+    // TEMP FUNCTION FOR TESTING ON 2D IMAGES
     void testDetection();
 
 private:
@@ -20,6 +21,7 @@ private:
         int octave;
     };
 
+    float getMedian(std::vector<float>& array);
     void estimateStitchParams(const VoxelContainer& scan_1, VoxelContainer& scan_2);
     void displayKeypoints(const cv::Mat& sliceImg, const std::vector<cv::KeyPoint>& keypoints);
     void displayMatches(const cv::Mat& slice_1, const cv::Mat& slice_2, const std::vector<cv::KeyPoint>& keypoints_1, const std::vector<cv::KeyPoint>& keypoints_2, const std::vector<cv::DMatch>& matches);
@@ -37,9 +39,6 @@ private:
     const int blur_levels_num = scale_levels_num + 3;
     const double sigma = 1.6;
     std::vector<int> planes = {0, 1, 3, 4};
-
-    // std::vector<std::vector<cv::Mat>> gaussians;
-    // std::vector<std::vector<cv::Mat>> DoG;
 };
 
 #endif // SIFT_2D_STITCHER

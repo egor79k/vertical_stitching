@@ -2,7 +2,32 @@
 #include "sift_2d_stitcher.h"
 
 
+float SIFT2DStitcher::getMedian(std::vector<float>& array) {
+    int size = array.size();
+    
+    if (size == 0) {
+        return 0;
+    }
+    
+    if (size < 3) {
+        float sum = 0;
+        for (auto val : array) {
+            sum += val;
+        }
+        return sum / size;
+    }
+
+    std::sort(array.begin(), array.end());
+
+    return array[size / 2];
+}
+
+
 void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelContainer& scan_2) {
+    // std::vector<float> offsetsX;
+    // std::vector<float> offsetsY;
+    std::vector<float> offsetsZ;
+
     VoxelContainer::Vector3 size_1 = scan_1.getSize();
     VoxelContainer::Vector3 size_2 = scan_2.getSize();
 
@@ -21,8 +46,6 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
     cv::Mat descriptors_1, descriptors_2;
     cv::BFMatcher matcher;
     std::vector<cv::DMatch> matches;
-    float distancesSum = 0;
-    int totalMatches = 0;
 
     for (int plane : planes) {
         int slice_id = size_1.x / 2;
@@ -32,9 +55,6 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
 
         cv::Mat_<float> slice_1(maxOverlap, size_1.y, sliceImg_1.getData() + (size_1.z - maxOverlap) * size_1.y);
         cv::Mat_<float> slice_2(maxOverlap, size_2.y, sliceImg_2.getData());
-
-        // cv::Mat_<float> slice_1(size_1.z, size_1.y, sliceImg_1.getData());
-        // cv::Mat_<float> slice_2(size_2.z, size_2.y, sliceImg_2.getData());
 
         DoG_1.clear();
         DoG_2.clear();
@@ -50,17 +70,17 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
         detect(DoG_1, keypoints_1);
         detect(DoG_2, keypoints_2);
 
-        printf("Finded %lu and %lu candidates to keypoints\n", keypoints_1.size(), keypoints_2.size());
+        // printf("Finded %lu and %lu candidates to keypoints\n", keypoints_1.size(), keypoints_2.size());
 
         localize(DoG_1, keypoints_1);
         localize(DoG_2, keypoints_2);
 
-        printf("Localized %lu and %lu keypoints\n", keypoints_1.size(), keypoints_2.size());
+        // printf("Localized %lu and %lu keypoints\n", keypoints_1.size(), keypoints_2.size());
 
         orient(gaussians_1, DoG_1, keypoints_1);
         orient(gaussians_2, DoG_2, keypoints_2);
 
-        printf("Oriented %lu and %lu keypoints\n", keypoints_1.size(), keypoints_2.size());
+        // printf("Oriented %lu and %lu keypoints\n", keypoints_1.size(), keypoints_2.size());
 
         // displayKeypoints(slice_1, keypoints_1);
         // displayKeypoints(slice_2, keypoints_2);
@@ -85,39 +105,41 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
         // puts("\n===\n");
 
         matcher.match(descriptors_1, descriptors_2, matches);
-        totalMatches += matches.size();
+        // totalMatches += matches.size();
 
-        printf("Matched %lu keypoints\n", matches.size());
+        printf("Total %lu matches on plane %i\n", matches.size(), plane);
 
         displayMatches(slice_1, slice_2, keypoints_1, keypoints_2, matches);
 
-        for (int i = 0; i < matches.size(); ++i) {
-            auto kp_1 = keypoints_1[matches[i].queryIdx].pt;
-            auto kp_2 = keypoints_2[matches[i].trainIdx].pt;
-            float distance = kp_2.y - kp_1.y + maxOverlap;
-            printf("distance: %f\n", distance);
-            distancesSum += distance;
+        for (const cv::DMatch match : matches) {
+            auto kp_1 = keypoints_1[match.queryIdx].pt;
+            auto kp_2 = keypoints_2[match.trainIdx].pt;
+
+            offsetsZ.push_back(kp_2.y - kp_1.y + maxOverlap);
+
+            // if (plane == 0) {
+            //     offsetsY.push_back(kp_2.x - kp_1.x);
+            // }
+            // else if (plane == 1) {
+            //     offsetsX.push_back(kp_2.x - kp_1.x);
+            // }
         }
     }
 
-    int optimalOverlap = 0;
+    // Get optimal offsets
+    int offsetX = 0;
+    int offsetY = 0;
+    int offsetZ = getMedian(offsetsZ);
 
-    if (totalMatches > 0) {
-        optimalOverlap = distancesSum / totalMatches;
-        if (optimalOverlap < 0) {
-            optimalOverlap = 0;
-        }
-    }
-    else {
-        printf("No mathces :(\n");
-    }
+    scan_2.setEstStitchParams({offsetX, offsetY, static_cast<int>(size_1.z) - offsetZ});
 
-    printf("%s %i %s %f/%i\n", "Optimal overlap:", optimalOverlap, "DST:", distancesSum, totalMatches);
-
-    scan_2.setEstStitchParams({0, 0, static_cast<int>(size_1.z) - optimalOverlap});
+    auto refParams_1 = scan_1.getRefStitchParams();
+    auto refParams_2 = scan_2.getRefStitchParams();
+    printf("Offsets are %i %i %i. Should be %i %i %i\n", offsetX, offsetY, static_cast<int>(size_1.z) - offsetZ, refParams_2.offsetX - refParams_1.offsetX, refParams_2.offsetY - refParams_1.offsetY, refParams_2.offsetZ - refParams_1.offsetZ);
 }
 
 
+// TEMP FUNCTION FOR TESTING ON 2D IMAGES
 void SIFT2DStitcher::testDetection() {
     // cv::Mat origImg_1 = cv::imread("../reconstructions/SIFT_test.png");
     // cv::Mat origImg_2 = cv::imread("../reconstructions/SIFT_test.png");
