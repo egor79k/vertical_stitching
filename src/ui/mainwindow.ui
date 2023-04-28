@@ -71,6 +71,9 @@
       <height>24</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Viewed slice plane&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
     <item>
      <property name="text">
       <string>Sagittal</string>
@@ -163,6 +166,9 @@
       <width>181</width>
       <height>24</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Used stitching algorithm&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_2">
