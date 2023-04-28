@@ -68,21 +68,21 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
         calculateDescriptors(gaussians_1, DoG_1, keypoints_1, descriptors_1);
         calculateDescriptors(gaussians_2, DoG_2, keypoints_2, descriptors_2);
 
-        printf("\n%dx%d  %dx%d\n", descriptors_1.rows, descriptors_1.cols, descriptors_2.rows, descriptors_2.cols);
-        for (int i = 0; i < descriptors_1.rows; ++i) {
-            for (int j = 0; j < descriptors_1.cols; ++j) {
-                printf("%f ", descriptors_1.at<float>(i, j));
-            }
-            puts("\n\n");
-        }
-        puts("\n---\n");
-        for (int i = 0; i < descriptors_2.rows; ++i) {
-            for (int j = 0; j < descriptors_2.cols; ++j) {
-                printf("%f ", descriptors_2.at<float>(i, j));
-            }
-            puts("\n\n");
-        }
-        puts("\n===\n");
+        // printf("\n%dx%d  %dx%d\n", descriptors_1.rows, descriptors_1.cols, descriptors_2.rows, descriptors_2.cols);
+        // for (int i = 0; i < descriptors_1.rows; ++i) {
+        //     for (int j = 0; j < descriptors_1.cols; ++j) {
+        //         printf("%f ", descriptors_1.at<float>(i, j));
+        //     }
+        //     puts("\n\n");
+        // }
+        // puts("\n---\n");
+        // for (int i = 0; i < descriptors_2.rows; ++i) {
+        //     for (int j = 0; j < descriptors_2.cols; ++j) {
+        //         printf("%f ", descriptors_2.at<float>(i, j));
+        //     }
+        //     puts("\n\n");
+        // }
+        // puts("\n===\n");
 
         matcher.match(descriptors_1, descriptors_2, matches);
         totalMatches += matches.size();
@@ -94,8 +94,8 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
         for (int i = 0; i < matches.size(); ++i) {
             auto kp_1 = keypoints_1[matches[i].queryIdx].pt;
             auto kp_2 = keypoints_2[matches[i].trainIdx].pt;
-            float distance = (kp_2.y - kp_1.y) / 2;
-            printf("Distance: %f\n", distance);
+            float distance = kp_2.y - kp_1.y + maxOverlap;
+            printf("distance: %f\n", distance);
             distancesSum += distance;
         }
     }
@@ -104,6 +104,9 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
 
     if (totalMatches > 0) {
         optimalOverlap = distancesSum / totalMatches;
+        if (optimalOverlap < 0) {
+            optimalOverlap = 0;
+        }
     }
     else {
         printf("No mathces :(\n");

@@ -1,30 +1,25 @@
 #include "opencv_sift_2d_stitcher.h"
 #include <algorithm>
-// #include <>
 
 
-void filterMatches(const std::vector<cv::DMatch>& matches, std::vector<cv::DMatch>& goodMatches) {
-    double min_dist = std::numeric_limits<double>::max();;
+// void filterMatches(const std::vector<cv::DMatch>& matches, std::vector<cv::DMatch>& goodMatches) {
+//     double min_dist = std::numeric_limits<double>::max();;
     
-    for (int i = 0; i < matches.size(); i++)
-    {
-        double dist = matches[i].distance;
+//     for (int i = 0; i < matches.size(); i++) {
+//         double dist = matches[i].distance;
 
-        if (dist < min_dist) {
-            min_dist = dist;
-        }
-    }
+//         if (dist < min_dist) {
+//             min_dist = dist;
+//         }
+//     }
 
-    for (int i = 0; i < matches.size(); i++)
-    {
-        // if (matches[i].distance < 3 * min_dist)
-        // {
-        goodMatches.push_back(matches[i]);
-        // }
-    }
-
-    // goodMatches = matches;
-}
+//     for (int i = 0; i < matches.size(); i++)
+//     {
+//         if (matches[i].distance < 3 * min_dist) {
+//             goodMatches.push_back(matches[i]);
+//         }
+//     }
+// }
 
 
 float getMedian(std::vector<float>& array) {
@@ -105,14 +100,13 @@ void OpenCVSIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, Vo
         sift->detectAndCompute(slice_2, cv::Mat(), keypoints_2, descriptor_2);
 
         matcher.match(descriptor_1, descriptor_2, matches);
-        filterMatches(matches, goodMatches);
 
-        size_t goodMatchesNum = goodMatches.size();
+        size_t matchesNum = matches.size();
 
-        totalMatches += goodMatchesNum;
-        for (int i = 0; i < goodMatchesNum; ++i) {
-            auto kp_1 = keypoints_1[goodMatches[i].queryIdx].pt;
-            auto kp_2 = keypoints_2[goodMatches[i].trainIdx].pt;
+        totalMatches += matchesNum;
+        for (int i = 0; i < matchesNum; ++i) {
+            auto kp_1 = keypoints_1[matches[i].queryIdx].pt;
+            auto kp_2 = keypoints_2[matches[i].trainIdx].pt;
             float distance = kp_2.y - kp_1.y + maxOverlap;
             printf("distance: %f\n", distance);
             distancesSum += distance;
@@ -124,8 +118,8 @@ void OpenCVSIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, Vo
                 offsetsX.push_back(kp_2.x - kp_1.x);
             }
 
-            // int mId_1 = goodMatches[i].queryIdx;
-            // int mId_2 = goodMatches[i].trainIdx;
+            // int mId_1 = matches[i].queryIdx;
+            // int mId_2 = matches[i].trainIdx;
 
             // putchar('\n');
             // for (int j = 0; j < descriptor_1.cols; ++j) {
@@ -138,19 +132,18 @@ void OpenCVSIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, Vo
             // putchar('\n');
         }
 
-        printf("%s %lu %s %lu\n", "Total matches:", matches.size(), "good matches:", goodMatchesNum);
+        printf("%s %lu %s %lu\n", "Total matches:", matches.size(), "good matches:", matchesNum);
 
         cv::cvtColor(slice_2, rgbSlice_2, cv::COLOR_GRAY2RGB);
         
         cv::namedWindow("Display Matches", cv::WINDOW_AUTOSIZE);
-        cv::drawMatches(rgbSlice_1, keypoints_1, rgbSlice_2, keypoints_2, goodMatches, match_result);
+        cv::drawMatches(rgbSlice_1, keypoints_1, rgbSlice_2, keypoints_2, matches, match_result);
         cv::imshow("Display Matches", match_result);
         int key = -1;
         while (key != 'q') key = cv::waitKeyEx(100);
 
         keypoints_2.clear();
         matches.clear();
-        goodMatches.clear();
     }
 
     cv::destroyAllWindows();
