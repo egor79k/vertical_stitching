@@ -17,11 +17,11 @@ int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
 
     AlgoList stitchAlgos = {
-        {std::make_shared<SIFT3DStitcher>(), "SIFT 3D"},
-        {std::make_shared<SIFT2DStitcher>(), "SIFT 2D"},
-        {std::make_shared<OpenCVSIFT2DStitcher>(), "OpenCV SIFT 2D"},
+        {std::make_shared<SeparationStitcher>(), "Separation"},
         {std::make_shared<L2DirectAlignmentStitcher>(), "L2 direct alignment"},
-        {std::make_shared<SeparationStitcher>(), "Separation"}};
+        {std::make_shared<OpenCVSIFT2DStitcher>(), "OpenCV SIFT 2D"},
+        {std::make_shared<SIFT2DStitcher>(), "SIFT 2D"},
+        {std::make_shared<SIFT3DStitcher>(), "SIFT 3D"}};
 
     MainWindow w(&stitchAlgos);
     w.setWindowTitle("Vertical stitcher");
