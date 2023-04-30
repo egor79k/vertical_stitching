@@ -24,8 +24,8 @@ float SIFT2DStitcher::getMedian(std::vector<float>& array) {
 
 
 void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelContainer& scan_2) {
-    // std::vector<float> offsetsX;
-    // std::vector<float> offsetsY;
+    std::vector<float> offsetsX;
+    std::vector<float> offsetsY;
     std::vector<float> offsetsZ;
 
     VoxelContainer::Vector3 size_1 = scan_1.getSize();
@@ -33,7 +33,7 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
 
     const int refOffsetZ = scan_2.getRefStitchParams().offsetZ;
     const int maxRefDeviation = 5;
-    int maxOverlap = size_1.z / 2;
+    int maxOverlap = size_2.z / 2;
 
     if (refOffsetZ > 0) {
         maxOverlap = size_1.z - refOffsetZ + maxRefDeviation;
@@ -47,11 +47,11 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
     cv::BFMatcher matcher;
     std::vector<cv::DMatch> matches;
 
-    for (int plane : planes) {
-        int slice_id = size_1.x / 2;
+    for (auto plane : planes) {
+        int slice_id = size_1.x * plane.second;
 
-        scan_1.getSlice<float>(sliceImg_1, plane, slice_id, false);
-        scan_2.getSlice<float>(sliceImg_2, plane, slice_id, false);
+        scan_1.getSlice<float>(sliceImg_1, plane.first, slice_id, false);
+        scan_2.getSlice<float>(sliceImg_2, plane.first, slice_id, false);
 
         cv::Mat_<float> slice_1(maxOverlap, size_1.y, sliceImg_1.getData() + (size_1.z - maxOverlap) * size_1.y);
         cv::Mat_<float> slice_2(maxOverlap, size_2.y, sliceImg_2.getData());
@@ -105,11 +105,10 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
         // puts("\n===\n");
 
         matcher.match(descriptors_1, descriptors_2, matches);
-        // totalMatches += matches.size();
 
-        printf("Total %lu matches on plane %i\n", matches.size(), plane);
+        printf("Total %lu matches on plane %i:%.2f\n", matches.size(), plane.first, plane.second);
 
-        displayMatches(slice_1, slice_2, keypoints_1, keypoints_2, matches);
+        // displayMatches(slice_1, slice_2, keypoints_1, keypoints_2, matches);
 
         for (const cv::DMatch match : matches) {
             auto kp_1 = keypoints_1[match.queryIdx].pt;
@@ -117,19 +116,30 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
 
             offsetsZ.push_back(kp_2.y - kp_1.y + maxOverlap);
 
-            // if (plane == 0) {
-            //     offsetsY.push_back(kp_2.x - kp_1.x);
-            // }
-            // else if (plane == 1) {
-            //     offsetsX.push_back(kp_2.x - kp_1.x);
-            // }
+            if (plane.first == 0) {
+                offsetsY.push_back(kp_2.x - kp_1.x);
+            }
+            else if (plane.first == 1) {
+                offsetsX.push_back(kp_2.x - kp_1.x);
+            }
         }
     }
 
     // Get optimal offsets
-    int offsetX = 0;
-    int offsetY = 0;
+    int offsetX = getMedian(offsetsX);
+    int offsetY = getMedian(offsetsY);
     int offsetZ = getMedian(offsetsZ);
+
+    const int maxOX = size_1.x / 2;
+    const int maxOY = size_1.y / 2;
+
+    if (offsetX < -maxOX || offsetX > maxOX) {
+        offsetX = 0;
+    }
+
+    if (offsetY < -maxOY || offsetY > maxOY) {
+        offsetY = 0;
+    }
 
     scan_2.setEstStitchParams({offsetX, offsetY, static_cast<int>(size_1.z) - offsetZ});
 

@@ -33,7 +33,7 @@ void OpenCVSIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, Vo
 
     const int refOffsetZ = scan_2.getRefStitchParams().offsetZ;
     const int maxRefDeviation = 5;
-    int maxOverlap = size_1.z / 2;
+    int maxOverlap = size_2.z / 2;
 
     if (refOffsetZ > 0) {
         maxOverlap = size_1.z - refOffsetZ + maxRefDeviation;
@@ -47,16 +47,16 @@ void OpenCVSIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, Vo
     cv::BFMatcher matcher;
     std::vector<cv::DMatch> matches;
     cv::Ptr<cv::SIFT> sift = cv::SIFT::create();
-    std::vector<int> planes = {0, 1, 3, 4};
+    std::vector<std::pair<int, float>> planes = {{0, 0.4}, {0, 0.5}, {0, 0.6}, {1, 0.4}, {1, 0.5}, {1, 0.6}, {3, 0}, {4, 0}};
 
-    for (int plane : planes) {
+    for (auto plane : planes) {
         // Find keypoints and compute descriptors on the middle current plane
-        int slice_id = size_1.x / 2;
-        scan_1.getSlice<uint8_t>(sliceImg_1, plane, slice_id, true);
+        int slice_id = size_1.x * plane.second;
+        scan_1.getSlice<uint8_t>(sliceImg_1, plane.first, slice_id, true);
         cv::Mat_<unsigned char> slice_1(maxOverlap, size_1.y, sliceImg_1.getData() + (size_1.z - maxOverlap) * size_1.y);
         sift->detectAndCompute(slice_1, cv::Mat(), keypoints_1, descriptors_1);
 
-        scan_2.getSlice<uint8_t>(sliceImg_2, plane, slice_id, true);
+        scan_2.getSlice<uint8_t>(sliceImg_2, plane.first, slice_id, true);
         cv::Mat_<unsigned char> slice_2(maxOverlap, size_2.y, sliceImg_2.getData());
         sift->detectAndCompute(slice_2, cv::Mat(), keypoints_2, descriptors_2);
 
@@ -69,24 +69,24 @@ void OpenCVSIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, Vo
 
             offsetsZ.push_back(kp_2.y - kp_1.y + maxOverlap);
 
-            if (plane == 0) {
+            if (plane.first == 0) {
                 offsetsY.push_back(kp_2.x - kp_1.x);
             }
-            else if (plane == 1) {
+            else if (plane.first == 1) {
                 offsetsX.push_back(kp_2.x - kp_1.x);
             }
         }
 
-        printf("Total %lu matches on plane %i\n", matches.size(), plane);
+        printf("Total %lu matches on plane %i:%.2f\n", matches.size(), plane.first, plane.second);
 
         // Display matches
-        cv::Mat rgbSlice_1, rgbSlice_2, match_result;
-        cv::cvtColor(slice_1, rgbSlice_1, cv::COLOR_GRAY2RGB);
-        cv::cvtColor(slice_2, rgbSlice_2, cv::COLOR_GRAY2RGB);
-        cv::drawMatches(rgbSlice_1, keypoints_1, rgbSlice_2, keypoints_2, matches, match_result);
-        cv::imshow("Display Matches", match_result);
-        int key = -1;
-        while (key != 'q') key = cv::waitKeyEx(100);
+        // cv::Mat rgbSlice_1, rgbSlice_2, match_result;
+        // cv::cvtColor(slice_1, rgbSlice_1, cv::COLOR_GRAY2RGB);
+        // cv::cvtColor(slice_2, rgbSlice_2, cv::COLOR_GRAY2RGB);
+        // cv::drawMatches(rgbSlice_1, keypoints_1, rgbSlice_2, keypoints_2, matches, match_result);
+        // cv::imshow("Display Matches", match_result);
+        // int key = -1;
+        // while (key != 'q') key = cv::waitKeyEx(100);
 
         // Clear current plane features
         keypoints_1.clear();

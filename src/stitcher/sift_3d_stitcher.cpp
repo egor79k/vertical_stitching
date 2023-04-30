@@ -33,7 +33,7 @@ void SIFT3DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
 
     const int refOffsetZ = scan_2.getRefStitchParams().offsetZ;
     const int maxRefDeviation = 5;
-    int maxOverlap = size_1.z / 2;
+    int maxOverlap = size_2.z / 2;
 
     if (refOffsetZ > 0) {
         maxOverlap = size_1.z - refOffsetZ + maxRefDeviation;

@@ -38,7 +38,8 @@ private:
     const int scale_levels_num = 5;
     const int blur_levels_num = scale_levels_num + 3;
     const double sigma = 1.6;
-    std::vector<int> planes = {0, 1, 3, 4};
+    // std::vector<int> planes = {0, 1, 3, 4};
+    std::vector<std::pair<int, float>> planes = {{0, 0.4}, {0, 0.5}, {0, 0.6}, {1, 0.4}, {1, 0.5}, {1, 0.6}, {3, 0}, {4, 0}};
 };
 
 #endif // SIFT_2D_STITCHER
