@@ -31,7 +31,7 @@ void DirectAlignmentStitcher::estimateStitchParams(const VoxelContainer& scan_1,
 
     if (refOffsetZ > 0) {
         refOverlap = height_1 - refOffsetZ;
-        maxDeviation = 5;
+        maxDeviation = std::max(5, refOverlap / 5);
     }
 
     float minDiff = std::numeric_limits<float>::max();
@@ -51,7 +51,10 @@ void DirectAlignmentStitcher::estimateStitchParams(const VoxelContainer& scan_1,
     printf("%s %i\n", "Optimal overlap:", optimalOverlap);
 
     scan_2.setEstStitchParams({0, 0, height_1 - optimalOverlap});
-    // scan_2.getRefStitchParams().offsetX - scan_1.getRefStitchParams().offsetX, scan_2.getRefStitchParams().offsetY - scan_1.getRefStitchParams().offsetY
+
+    auto refParams_1 = scan_1.getRefStitchParams();
+    auto refParams_2 = scan_2.getRefStitchParams();
+    printf("Offsets are 0 0 %i. Should be %i %i %i\n", height_1 - optimalOverlap, refParams_2.offsetX - refParams_1.offsetX, refParams_2.offsetY - refParams_1.offsetY, refParams_2.offsetZ - refParams_1.offsetZ);
 }
 
 

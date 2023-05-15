@@ -32,11 +32,12 @@ void SIFT3DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
     VoxelContainer::Vector3 size_2 = scan_2.getSize();
 
     const int refOffsetZ = scan_2.getRefStitchParams().offsetZ;
-    const int maxRefDeviation = 5;
     int maxOverlap = size_2.z / 2;
 
     if (refOffsetZ > 0) {
-        maxOverlap = size_1.z - refOffsetZ + maxRefDeviation;
+        maxOverlap = size_1.z - refOffsetZ;
+        int maxDeviation = std::max(5, maxOverlap / 5);
+        maxOverlap += maxDeviation;
     }
 
     std::vector<std::vector<VoxelContainer>> scanGaussians_1, scanGaussians_2;
@@ -133,7 +134,7 @@ void SIFT3DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
             auto kp_1 = keypoints_1[match.queryIdx].pt;
             auto kp_2 = keypoints_2[match.trainIdx].pt;
 
-            offsetsZ.push_back(kp_2.y - kp_1.y + maxOverlap - maxRefDeviation);
+            offsetsZ.push_back(kp_2.y - kp_1.y + maxOverlap);
 
             if (plane.first == 0) {
                 offsetsY.push_back(kp_2.x - kp_1.x);
