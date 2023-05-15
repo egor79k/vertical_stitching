@@ -475,14 +475,25 @@ void SIFT3DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
             kp.pt.x += kp_shift.at<float>(0);
             kp.pt.y += kp_shift.at<float>(1);
             kp.class_id += kp_shift.at<float>(2);
+
+            // Check if keypoint is in layer bounds
+            if (1 > kp.pt.x ||
+                kp.pt.x >= kp_img.cols - 1 ||
+                1 > kp.pt.y ||
+                kp.pt.y >= kp_img.rows - 1 ||
+                1 > kp.class_id ||
+                kp.class_id >= blurLevelsNum - 2) {
+                // printf("Keypoint moved outside of image\n");
+                break;
+            }
             
             if (kp_shift.at<float>(0) < min_shift &&
                 kp_shift.at<float>(1) < min_shift &&
                 kp_shift.at<float>(2) < min_shift) {
                 // Rejecting unstable extrema with low contrast
-                float contrast = last_kp_val + 0.5 * (grad.at<float>(0) * kp_shift.at<float>(0) +
-                                                      grad.at<float>(1) * kp_shift.at<float>(1) +
-                                                      grad.at<float>(2) * kp_shift.at<float>(2));
+                float contrast = std::abs(last_kp_val + 0.5 * (grad.at<float>(0) * kp_shift.at<float>(0) +
+                                                               grad.at<float>(1) * kp_shift.at<float>(1) +
+                                                               grad.at<float>(2) * kp_shift.at<float>(2)));
 
                 if (contrast * scaleLevelsNum < min_contrast) {
                     // printf("Low contrast keypoint discarded\n");
@@ -505,17 +516,6 @@ void SIFT3DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
                 kp.pt *= std::pow(2, kp.octave);
 
                 true_keypoints.push_back(kp);
-                break;
-            }
-
-            // Check if keypoint is in layer bounds
-            if (1 > kp.pt.x ||
-                kp.pt.x >= kp_img.cols - 1 ||
-                1 > kp.pt.y ||
-                kp.pt.y >= kp_img.rows - 1 ||
-                1 > kp.class_id ||
-                kp.class_id >= blurLevelsNum - 2) {
-                // printf("Keypoint moved outside of image\n");
                 break;
             }
         }
@@ -597,7 +597,7 @@ void SIFT3DStitcher::orient(const std::vector<std::vector<cv::Mat>>& gaussians, 
         float right_val = HoG.at<float>(kp_id, (max_bin + 1) % hist_bins_num);
         kp.angle = (parabolicInterpolation(left_val, max_val, right_val) + max_bin) * 10;
 
-        if (kp.angle < 0) {
+        while (kp.angle < 0) {
             kp.angle += 360;
         }
 
@@ -616,7 +616,7 @@ void SIFT3DStitcher::orient(const std::vector<std::vector<cv::Mat>>& gaussians, 
                 right_val = HoG.at<float>(kp_id, (bin + 1) % hist_bins_num);
                 float angle = (parabolicInterpolation(left_val, val, right_val) + bin) * 10;
 
-                if (angle < 0) {
+                while (angle < 0) {
                     angle += 360;
                 }
 

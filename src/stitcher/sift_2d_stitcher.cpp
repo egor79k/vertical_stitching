@@ -2,6 +2,12 @@
 #include "sift_2d_stitcher.h"
 
 
+SIFT2DStitcher::SIFT2DStitcher(const int octaves_num_, const int scale_levels_num_, const double sigma_) :
+octaves_num(octaves_num_),
+scale_levels_num(scale_levels_num_),
+sigma(sigma_) {}
+
+
 float SIFT2DStitcher::getMedian(std::vector<float>& array) {
     int size = array.size();
     
@@ -154,8 +160,10 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
 void SIFT2DStitcher::testDetection() {
     // cv::Mat origImg_1 = cv::imread("../reconstructions/SIFT_test.png");
     // cv::Mat origImg_2 = cv::imread("../reconstructions/SIFT_test.png");
-    cv::Mat origImg_1 = cv::imread("../reconstructions/keyboard_1_1.jpg");
-    cv::Mat origImg_2 = cv::imread("../reconstructions/keyboard_2_1.jpg");
+    // cv::Mat origImg_1 = cv::imread("../reconstructions/keyboard_1_1.jpg");
+    // cv::Mat origImg_2 = cv::imread("../reconstructions/keyboard_2_1.jpg");
+    cv::Mat origImg_1 = cv::imread("../img/spirals_horizontal_transverse.png");
+    cv::Mat origImg_2 = cv::imread("../img/256.png");
     cv::cvtColor(origImg_1, origImg_1, cv::COLOR_RGB2GRAY);
     cv::cvtColor(origImg_2, origImg_2, cv::COLOR_RGB2GRAY);
     cv::Mat_<float> img_1;
@@ -193,12 +201,6 @@ void SIFT2DStitcher::testDetection() {
     // cv::imshow("Display Keypoints", rgbSlice);
     // cv::waitKey(0);
 
-    // cv::Mat rgbSlice = origImg_1.clone();
-    // cv::drawKeypoints(rgbSlice, keypoints_1, rgbSlice);
-    // cv::imshow("Display Keypoints", rgbSlice);
-    // cv::imwrite("all_candidates_1.png", rgbSlice);
-    // cv::waitKey(0);
-
     localize(DoG_1, keypoints_1);
     localize(DoG_2, keypoints_2);
     
@@ -210,16 +212,27 @@ void SIFT2DStitcher::testDetection() {
     calculateDescriptors(gaussians_1, DoG_1, keypoints_1, descriptors_1);
     calculateDescriptors(gaussians_2, DoG_2, keypoints_2, descriptors_2);
 
+    cv::Mat rgbSlice = origImg_1.clone();
+    cv::drawKeypoints(rgbSlice, keypoints_1, rgbSlice, cv::Scalar(255, 255, 0), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+    // cv::imshow("Display Keypoints", rgbSlice);
+    // cv::waitKey(0);
+    cv::imwrite(std::to_string(octaves_num) + "_" + std::to_string(scale_levels_num) + "_" + std::to_string(sigma).substr(0, 3) + "_1_kps_" + std::to_string(keypoints_1.size()) + ".png", rgbSlice);
+    rgbSlice = origImg_2.clone();
+    cv::drawKeypoints(rgbSlice, keypoints_2, rgbSlice, cv::Scalar(255, 255, 0), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+    // cv::imshow("Display Keypoints", rgbSlice);
+    // cv::waitKey(0);
+    cv::imwrite(std::to_string(octaves_num) + "_" + std::to_string(scale_levels_num) + "_" + std::to_string(sigma).substr(0, 3) + "_2_kps_" + std::to_string(keypoints_2.size()) + ".png", rgbSlice);
+
     matcher.match(descriptors_1, descriptors_2, matches);
 
     printf("Matches: %lu\n", matches.size());
 
-    cv::Mat result;
-    cv::drawMatches(origImg_1, keypoints_1, origImg_2, keypoints_2, matches, result, cv::Scalar(255, 255, 0), cv::Scalar(0, 0, 255), std::vector<char>(), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-    cv::imshow("Display Keypoints", result);
-    // cv::imwrite("all_oriented_1.png", origImg_1);
-    cv::waitKey(0);
-    cv::destroyAllWindows();
+    // cv::Mat result;
+    // cv::drawMatches(origImg_1, keypoints_1, origImg_2, keypoints_2, matches, result, cv::Scalar(255, 255, 0), cv::Scalar(0, 0, 255), std::vector<char>(), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+    // cv::imshow("Display Keypoints", result);
+    // // cv::imwrite("all_oriented_1.png", origImg_1);
+    // cv::waitKey(0);
+    // cv::destroyAllWindows();
 }
 
 
@@ -465,17 +478,28 @@ void SIFT2DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
             kp.pt.x += kp_shift.at<float>(0);
             kp.pt.y += kp_shift.at<float>(1);
             kp.class_id += kp_shift.at<float>(2);
+
+            // Check if keypoint is in layer bounds
+            if (1 > kp.pt.x ||
+                kp.pt.x >= kp_img.cols - 1 ||
+                1 > kp.pt.y ||
+                kp.pt.y >= kp_img.rows - 1 ||
+                1 > kp.class_id ||
+                kp.class_id >= blur_levels_num - 2) {
+                // printf("Keypoint moved outside of image\n");
+                break;
+            }
             
             if (kp_shift.at<float>(0) < min_shift &&
                 kp_shift.at<float>(1) < min_shift &&
                 kp_shift.at<float>(2) < min_shift) {
                 // Rejecting unstable extrema with low contrast
-                float contrast = last_kp_val + 0.5 * (grad.at<float>(0) * kp_shift.at<float>(0) +
-                                                      grad.at<float>(1) * kp_shift.at<float>(1) +
-                                                      grad.at<float>(2) * kp_shift.at<float>(2));
+                float contrast = std::abs(last_kp_val + 0.5 * (grad.at<float>(0) * kp_shift.at<float>(0) +
+                                                               grad.at<float>(1) * kp_shift.at<float>(1) +
+                                                               grad.at<float>(2) * kp_shift.at<float>(2)));
 
                 if (contrast * scale_levels_num < min_contrast) {
-                    // printf("Low contrast keypoint discarded\n");
+                    // printf("Low contrast keypoint discarded: %f\n", contrast * scale_levels_num);
                     break;
                 }
 
@@ -495,17 +519,6 @@ void SIFT2DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
                 kp.pt *= std::pow(2, kp.octave);
 
                 true_keypoints.push_back(kp);
-                break;
-            }
-
-            // Check if keypoint is in layer bounds
-            if (1 > kp.pt.x ||
-                kp.pt.x >= kp_img.cols - 1 ||
-                1 > kp.pt.y ||
-                kp.pt.y >= kp_img.rows - 1 ||
-                1 > kp.class_id ||
-                kp.class_id >= blur_levels_num - 2) {
-                // printf("Keypoint moved outside of image\n");
                 break;
             }
         }
@@ -587,7 +600,7 @@ void SIFT2DStitcher::orient(const std::vector<std::vector<cv::Mat>>& gaussians, 
         float right_val = HoG.at<float>(kp_id, (max_bin + 1) % hist_bins_num);
         kp.angle = (parabolicInterpolation(left_val, max_val, right_val) + max_bin) * 10;
 
-        if (kp.angle < 0) {
+        while (kp.angle < 0) {
             kp.angle += 360;
         }
 
@@ -606,7 +619,7 @@ void SIFT2DStitcher::orient(const std::vector<std::vector<cv::Mat>>& gaussians, 
                 right_val = HoG.at<float>(kp_id, (bin + 1) % hist_bins_num);
                 float angle = (parabolicInterpolation(left_val, val, right_val) + bin) * 10;
 
-                if (angle < 0) {
+                while (angle < 0) {
                     angle += 360;
                 }
 
@@ -659,7 +672,7 @@ void SIFT2DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>
                 float orientation = std::atan2(dy, dx) * 180.0f / M_PI;
 
                 // Rotate on keypoint orientation for rotational invariance
-                orientation = std::fmod(orientation + kp.angle, 360);
+                orientation = std::fmod(orientation + 180 + kp.angle, 360);
 
                 int x_loc = x - center.x;
                 int y_loc = y - center.y;

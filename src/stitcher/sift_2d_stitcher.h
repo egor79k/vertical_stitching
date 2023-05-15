@@ -10,6 +10,7 @@
 
 class SIFT2DStitcher : public StitcherImpl {
 public:
+    SIFT2DStitcher(const int octaves_num_ = 4, const int scale_levels_num_ = 3, const double sigma_ = 0.9);
     // TEMP FUNCTION FOR TESTING ON 2D IMAGES
     void testDetection();
 
