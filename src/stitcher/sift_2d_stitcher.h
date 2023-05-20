@@ -10,9 +10,8 @@
 
 class SIFT2DStitcher : public StitcherImpl {
 public:
-    SIFT2DStitcher(const int octaves_num_ = 4, const int scale_levels_num_ = 3, const double sigma_ = 0.9);
     // TEMP FUNCTION FOR TESTING ON 2D IMAGES
-    void testDetection();
+    void testDetection(const char* img_path_1, const char* img_path_2);
 
 private:
     struct KeyPoint {
@@ -35,10 +34,10 @@ private:
     void orient(const std::vector<std::vector<cv::Mat>>& gaussians, const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints);
     void calculateDescriptors(const std::vector<std::vector<cv::Mat>>& gaussians, const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints, cv::Mat& descriptors);
 
-    const int octaves_num = 4;
-    const int scale_levels_num = 5;
+    int octaves_num = 4;
+    const int scale_levels_num = 3;
     const int blur_levels_num = scale_levels_num + 3;
-    const double sigma = 1.6;
+    double sigma = 1.6;
     // std::vector<int> planes = {0, 1, 3, 4};
     std::vector<std::pair<int, float>> planes = {{0, 0.4}, {0, 0.5}, {0, 0.6}, {1, 0.4}, {1, 0.5}, {1, 0.6}, {3, 0}, {4, 0}};
 };

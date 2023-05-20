@@ -2,12 +2,6 @@
 #include "sift_2d_stitcher.h"
 
 
-SIFT2DStitcher::SIFT2DStitcher(const int octaves_num_, const int scale_levels_num_, const double sigma_) :
-octaves_num(octaves_num_),
-scale_levels_num(scale_levels_num_),
-sigma(sigma_) {}
-
-
 float SIFT2DStitcher::getMedian(std::vector<float>& array) {
     int size = array.size();
     
@@ -36,6 +30,14 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
 
     VoxelContainer::Vector3 size_1 = scan_1.getSize();
     VoxelContainer::Vector3 size_2 = scan_2.getSize();
+
+    // Calculate optimal params
+    int size = std::max(size_1.x, size_1.y);
+    octaves_num = std::log2(size / 16);
+
+    if (size < 512) {
+        sigma = 1.4 * size / 512 + 0.2;
+    }
 
     const int refOffsetZ = scan_2.getRefStitchParams().offsetZ;
     int maxOverlap = size_2.z / 2;
@@ -157,23 +159,23 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
 
 
 // TEMP FUNCTION FOR TESTING ON 2D IMAGES
-void SIFT2DStitcher::testDetection() {
-    // cv::Mat origImg_1 = cv::imread("../reconstructions/SIFT_test.png");
-    // cv::Mat origImg_2 = cv::imread("../reconstructions/SIFT_test.png");
-    // cv::Mat origImg_1 = cv::imread("../reconstructions/keyboard_1_1.jpg");
-    // cv::Mat origImg_2 = cv::imread("../reconstructions/keyboard_2_1.jpg");
-    cv::Mat origImg_1 = cv::imread("../img/spirals_horizontal_transverse.png");
-    cv::Mat origImg_2 = cv::imread("../img/256.png");
+void SIFT2DStitcher::testDetection(const char* img_path_1, const char* img_path_2) {
+    cv::Mat origImg_1 = cv::imread(img_path_1);
+    cv::Mat origImg_2 = cv::imread(img_path_2);
     cv::cvtColor(origImg_1, origImg_1, cv::COLOR_RGB2GRAY);
     cv::cvtColor(origImg_2, origImg_2, cv::COLOR_RGB2GRAY);
     cv::Mat_<float> img_1;
     cv::Mat_<float> img_2;
     origImg_1.convertTo(img_1, CV_32F);
     origImg_2.convertTo(img_2, CV_32F);
-    // cv::normalize(img_1, img_1, 0, 1, cv::NORM_MINMAX);
-    // cv::namedWindow("Display Keypoints", cv::WINDOW_AUTOSIZE);
-    // cv::imshow("Display Keypoints", img_1);
-    // cv::waitKey(0);
+
+    // Calculate optimal params
+    int size = std::max(img_1.rows, img_1.cols);
+    octaves_num = std::log2(size / 16);
+
+    if (size < 512) {
+        sigma = 1.4 * size / 512 + 0.2;
+    }
 
     std::vector<std::vector<cv::Mat>> gaussians_1;
     std::vector<std::vector<cv::Mat>> gaussians_2;
@@ -194,17 +196,24 @@ void SIFT2DStitcher::testDetection() {
 
     printf("Finded %lu + %lu candidates to keypoints\n", keypoints_1.size(), keypoints_2.size());
 
-    // cv::Mat rgbSlice;
-    // cv::normalize(DoG_1[0][1], rgbSlice, 0, 255, cv::NORM_MINMAX);
-    // rgbSlice.convertTo(rgbSlice, CV_8U);
-    // cv::drawKeypoints(rgbSlice, keypoints_1, rgbSlice);
-    // cv::imshow("Display Keypoints", rgbSlice);
-    // cv::waitKey(0);
+    // cv::Mat rgbSlice = origImg_1.clone();
+    // cv::drawKeypoints(rgbSlice, keypoints_1, rgbSlice, cv::Scalar(255, 255, 0));
+    // cv::imwrite(std::to_string(octaves_num) + "_" + std::to_string(scale_levels_num) + "_" + std::to_string(sigma).substr(0, 3) + "_1_kps_" + std::to_string(keypoints_1.size()) + "_detected.png", rgbSlice);
+    // rgbSlice = origImg_2.clone();
+    // cv::drawKeypoints(rgbSlice, keypoints_2, rgbSlice, cv::Scalar(255, 255, 0));
+    // cv::imwrite(std::to_string(octaves_num) + "_" + std::to_string(scale_levels_num) + "_" + std::to_string(sigma).substr(0, 3) + "_2_kps_" + std::to_string(keypoints_2.size()) + "_detected.png", rgbSlice);
 
     localize(DoG_1, keypoints_1);
     localize(DoG_2, keypoints_2);
     
     printf("Finded %lu + %lu keypoints\n", keypoints_1.size(), keypoints_2.size());
+
+    // cv::Mat rgbSlice = origImg_1.clone();
+    // cv::drawKeypoints(rgbSlice, keypoints_1, rgbSlice, cv::Scalar(255, 255, 0), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+    // cv::imwrite(std::to_string(octaves_num) + "_" + std::to_string(scale_levels_num) + "_" + std::to_string(sigma).substr(0, 3) + "_1_kps_" + std::to_string(keypoints_1.size()) + "_localized.png", rgbSlice);
+    // rgbSlice = origImg_2.clone();
+    // cv::drawKeypoints(rgbSlice, keypoints_2, rgbSlice, cv::Scalar(255, 255, 0), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+    // cv::imwrite(std::to_string(octaves_num) + "_" + std::to_string(scale_levels_num) + "_" + std::to_string(sigma).substr(0, 3) + "_2_kps_" + std::to_string(keypoints_2.size()) + "_localized.png", rgbSlice);
     
     orient(gaussians_1, DoG_1, keypoints_1);
     orient(gaussians_2, DoG_2, keypoints_2);
@@ -227,12 +236,12 @@ void SIFT2DStitcher::testDetection() {
 
     printf("Matches: %lu\n", matches.size());
 
-    // cv::Mat result;
-    // cv::drawMatches(origImg_1, keypoints_1, origImg_2, keypoints_2, matches, result, cv::Scalar(255, 255, 0), cv::Scalar(0, 0, 255), std::vector<char>(), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-    // cv::imshow("Display Keypoints", result);
-    // // cv::imwrite("all_oriented_1.png", origImg_1);
-    // cv::waitKey(0);
-    // cv::destroyAllWindows();
+    cv::Mat result;
+    cv::drawMatches(origImg_1, keypoints_1, origImg_2, keypoints_2, matches, result, cv::Scalar(255, 255, 0), cv::Scalar(255, 255, 0), std::vector<char>(), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+    cv::imshow("Display Keypoints", result);
+    cv::imwrite("all_oriented_1.png", result);
+    cv::waitKey(0);
+    cv::destroyAllWindows();
 }
 
 

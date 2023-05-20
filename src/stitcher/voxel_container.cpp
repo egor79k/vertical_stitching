@@ -124,8 +124,6 @@ bool VoxelContainer::saveToJson(const std::string& dirName) {
     }
 
     std::ofstream fs(fileName);
-
-    std::cout << dirName << ' ' << fileName << std::endl;
     
     if (!fs.is_open()) {
         return false;

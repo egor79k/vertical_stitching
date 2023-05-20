@@ -37,10 +37,10 @@ private:
     void orient(const std::vector<std::vector<cv::Mat>>& gaussians, const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints);
     void calculateDescriptors(const std::vector<std::vector<cv::Mat>>& gaussians, const std::vector<std::vector<cv::Mat>>& DoG, std::vector<cv::KeyPoint>& keypoints, cv::Mat& descriptors);
 
-    const int octavesNum = 2;
-    const int scaleLevelsNum = 1;
+    int octavesNum = 3;
+    const int scaleLevelsNum = 3;
     const int blurLevelsNum = scaleLevelsNum + 3;
-    const double sigma = 1.6;
+     double sigma = 0.9;
     std::vector<std::pair<int, float>> planes = {{0, 0.4}, {0, 0.5}, {0, 0.6}, {1, 0.4}, {1, 0.5}, {1, 0.6}, {3, 0}, {4, 0}};
 };
 

@@ -31,6 +31,14 @@ void SIFT3DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
     VoxelContainer::Vector3 size_1 = scan_1.getSize();
     VoxelContainer::Vector3 size_2 = scan_2.getSize();
 
+    // Calculate optimal params
+    int size = std::max(size_1.x, size_1.y);
+    octavesNum = std::log2(size / 16);
+
+    if (size < 512) {
+        sigma = 1.4 * size / 512 + 0.2;
+    }
+
     const int refOffsetZ = scan_2.getRefStitchParams().offsetZ;
     int maxOverlap = size_2.z / 2;
 
