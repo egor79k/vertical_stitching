@@ -84,8 +84,8 @@ bool VoxelContainer::loadFromJson(const std::string& fileName) {
 
     if (data.contains("part_begin")) {
         referenceParams.offsetZ = data["part_begin"].get<int>();
-        referenceParams.offsetX = data["offset_y"].get<float>() * size.x;
-        referenceParams.offsetY = data["offset_x"].get<float>() * size.y;
+        referenceParams.offsetX = data["offset_y"].get<float>() * size.x / 2;
+        referenceParams.offsetY = data["offset_x"].get<float>() * size.y / 2;
     }
     // else {
     //     printf("Warning: reconstruction info doesn't contain distortions parameters.\n");

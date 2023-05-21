@@ -122,22 +122,63 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
         for (const cv::DMatch match : matches) {
             auto kp_1 = keypoints_1[match.queryIdx].pt;
             auto kp_2 = keypoints_2[match.trainIdx].pt;
-
             offsetsZ.push_back(kp_2.y - kp_1.y + maxOverlap);
-
-            if (plane.first == 0) {
-                offsetsY.push_back(kp_2.x - kp_1.x);
-            }
-            else if (plane.first == 1) {
-                offsetsX.push_back(kp_2.x - kp_1.x);
-            }
         }
     }
 
-    // Get optimal offsets
+    // Get optimal offset
+    int offsetZ = getMedian(offsetsZ);
+
+    std::vector<std::pair<int, float>> h_planes = {{2, 0.3}, {2, 0.4}, {2, 0.5}, {2, 0.6}, {2, 0.7}};
+
+    for (auto plane : h_planes) {
+        int slice_id_2 = offsetZ * plane.second;
+        int slice_id_1 = size_1.z - offsetZ + slice_id_2;
+
+        scan_1.getSlice<float>(sliceImg_1, plane.first, slice_id_1, false);
+        scan_2.getSlice<float>(sliceImg_2, plane.first, slice_id_2, false);
+
+        cv::Mat_<float> slice_1(size_1.x, size_1.y, sliceImg_1.getData());
+        cv::Mat_<float> slice_2(size_2.x, size_2.y, sliceImg_2.getData());
+
+        DoG_1.clear();
+        DoG_2.clear();
+        keypoints_1.clear();
+        keypoints_2.clear();
+        descriptors_1.release();
+        descriptors_2.release();
+        matches.clear();
+
+        buildDoG(slice_1, gaussians_1, DoG_1);
+        buildDoG(slice_2, gaussians_2, DoG_2);
+
+        detect(DoG_1, keypoints_1);
+        detect(DoG_2, keypoints_2);
+
+        localize(DoG_1, keypoints_1);
+        localize(DoG_2, keypoints_2);
+
+        orient(gaussians_1, DoG_1, keypoints_1);
+        orient(gaussians_2, DoG_2, keypoints_2);
+
+        calculateDescriptors(gaussians_1, DoG_1, keypoints_1, descriptors_1);
+        calculateDescriptors(gaussians_2, DoG_2, keypoints_2, descriptors_2);
+
+        matcher.match(descriptors_1, descriptors_2, matches);
+
+        printf("Total %lu matches on plane %i:%.2f\n", matches.size(), plane.first, plane.second);
+
+        for (const cv::DMatch match : matches) {
+            auto kp_1 = keypoints_1[match.queryIdx].pt;
+            auto kp_2 = keypoints_2[match.trainIdx].pt;
+            offsetsX.push_back(kp_2.x - kp_1.x);
+            offsetsY.push_back(kp_2.y - kp_1.y);
+        }
+    }
+
+    // Get optimal offset
     int offsetX = getMedian(offsetsX);
     int offsetY = getMedian(offsetsY);
-    int offsetZ = getMedian(offsetsZ);
 
     const int maxOX = size_1.x / 2;
     const int maxOY = size_1.y / 2;

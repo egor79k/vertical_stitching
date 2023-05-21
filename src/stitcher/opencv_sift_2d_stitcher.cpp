@@ -67,15 +67,7 @@ void OpenCVSIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, Vo
         for (const cv::DMatch match : matches) {
             auto kp_1 = keypoints_1[match.queryIdx].pt;
             auto kp_2 = keypoints_2[match.trainIdx].pt;
-
             offsetsZ.push_back(kp_2.y - kp_1.y + maxOverlap);
-
-            if (plane.first == 0) {
-                offsetsY.push_back(kp_2.x - kp_1.x);
-            }
-            else if (plane.first == 1) {
-                offsetsX.push_back(kp_2.x - kp_1.x);
-            }
         }
 
         printf("Total %lu matches on plane %i:%.2f\n", matches.size(), plane.first, plane.second);
@@ -97,12 +89,46 @@ void OpenCVSIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, Vo
         descriptors_2.release();
     }
 
-    cv::destroyAllWindows();
+    // Get optimal offset
+    int offsetZ = getMedian(offsetsZ);
 
-    // Get optimal offsets
+    std::vector<std::pair<int, float>> h_planes = {{2, 0.3}, {2, 0.4}, {2, 0.5}, {2, 0.6}, {2, 0.7}};
+
+    for (auto plane : h_planes) {
+        // Find keypoints and compute descriptors on the middle current plane
+        int slice_id_2 = offsetZ * plane.second;
+        int slice_id_1 = size_1.z - offsetZ + slice_id_2;
+        scan_1.getSlice<uint8_t>(sliceImg_1, plane.first, slice_id_1, true);
+        cv::Mat_<unsigned char> slice_1(size_1.x, size_1.y, sliceImg_1.getData());
+        sift->detectAndCompute(slice_1, cv::Mat(), keypoints_1, descriptors_1);
+
+        scan_2.getSlice<uint8_t>(sliceImg_2, plane.first, slice_id_2, true);
+        cv::Mat_<unsigned char> slice_2(size_2.x, size_2.y, sliceImg_2.getData());
+        sift->detectAndCompute(slice_2, cv::Mat(), keypoints_2, descriptors_2);
+
+        matcher.match(descriptors_1, descriptors_2, matches);
+
+        // Put distances between matched points to offsets vectors
+        for (const cv::DMatch match : matches) {
+            auto kp_1 = keypoints_1[match.queryIdx].pt;
+            auto kp_2 = keypoints_2[match.trainIdx].pt;
+            offsetsX.push_back(kp_2.x - kp_1.x);
+            offsetsY.push_back(kp_2.y - kp_1.y);
+        }
+
+        printf("Total %lu matches on plane %i:%.2f\n", matches.size(), plane.first, plane.second);
+
+        // Clear current plane features
+        keypoints_1.clear();
+        keypoints_2.clear();
+        matches.clear();
+        descriptors_1.release();
+        descriptors_2.release();
+    }
+
+    // Get optimal offset
     int offsetX = getMedian(offsetsX);
     int offsetY = getMedian(offsetsY);
-    int offsetZ = getMedian(offsetsZ);
 
     scan_2.setEstStitchParams({offsetX, offsetY, static_cast<int>(size_1.z) - offsetZ});
 

@@ -20,7 +20,15 @@ int main(int argc, char *argv[]) {
         {std::make_shared<SIFT2DStitcher>(), "sift_2d"}};
         // {std::make_shared<SIFT3DStitcher>(), "sift_3d"}};
 
-    std::vector<std::string> recons_names = {"bicycle_wheel"};
+    std::vector<std::string> recons_names = {
+        "bicycle_wheel_x512",
+        "big_wheel_x512",
+        "nonuniform_2_x512",
+        "pores_2_x512",
+        "big_wheel_x128",
+        "nonuniform_2_x128",
+        "nonuniform_x256",
+    };
 
     for (std::string& recon_name : recons_names) {
         // Parse JSON parameters
@@ -51,7 +59,7 @@ int main(int argc, char *argv[]) {
 
         // Stitch
         for (auto stitcher : stitchers) {
-            std::string recon_result_path = "../testing/" + recon_name + "/" + stitcher.second;
+            std::string recon_result_path = recon_path + "/" + stitcher.second;
             auto result_recon = stitcher.first->stitch(recons);
             result_recon->saveToJson(recon_result_path);
 
@@ -72,6 +80,11 @@ int main(int argc, char *argv[]) {
                 continue;
             }
             pfs << params_data.dump(4) << std::endl;
+
+            // Write slice image
+            TiffImage<uint8_t> img;
+            result_recon->getSlice<uint8_t>(img, 0, result_recon->getSize().x / 2, true);
+            img.saveAs((recon_result_path + ".png").data());
         }        
     }
 

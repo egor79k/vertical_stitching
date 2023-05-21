@@ -15,11 +15,8 @@ std::shared_ptr<VoxelContainer> StitcherImpl::stitch(const VoxelContainer& scan_
     }
 
     estimateStitchParams(scan_1, scan_2);
-    auto params_1 = scan_1.getEstStitchParams();
     auto params_2 = scan_2.getEstStitchParams();
     int overlap = size_1.z - params_2.offsetZ;
-    // int offsetY = params_2.offsetY - params_1.offsetY;
-    // int offsetX = params_2.offsetX - params_1.offsetX;
 
     VoxelContainer::Vector3 stitchedSize = {size_1.x, size_1.y, size_1.z + size_2.z - overlap};
 
