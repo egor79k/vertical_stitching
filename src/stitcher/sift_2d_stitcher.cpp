@@ -91,8 +91,8 @@ void SIFT2DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
 
         // printf("Oriented %lu and %lu keypoints\n", keypoints_1.size(), keypoints_2.size());
 
-        // displayKeypoints(slice_1, keypoints_1);
-        // displayKeypoints(slice_2, keypoints_2);
+        displayKeypoints(slice_1, keypoints_1);
+        displayKeypoints(slice_2, keypoints_2);
 
         calculateDescriptors(gaussians_1, DoG_1, keypoints_1, descriptors_1);
         calculateDescriptors(gaussians_2, DoG_2, keypoints_2, descriptors_2);
@@ -294,12 +294,12 @@ void SIFT2DStitcher::displayKeypoints(const cv::Mat& slice, const std::vector<cv
     graySlice.convertTo(graySlice, CV_8U);
     cv::cvtColor(graySlice, rgbSlice, cv::COLOR_GRAY2RGB);
     cv::drawKeypoints(rgbSlice, keypoints, rgbSlice, cv::Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-    cv::namedWindow("Display Keypoints", cv::WINDOW_AUTOSIZE);
-    cv::imshow("Display Keypoints", rgbSlice);
-    // static int unique_image_id = 0;
-    // cv::imwrite("oriented_keypoints_" + std::to_string(unique_image_id++) + ".png", rgbSlice);
-    cv::waitKey(0);
-    cv::destroyAllWindows();
+    // cv::namedWindow("Display Keypoints", cv::WINDOW_AUTOSIZE);
+    // cv::imshow("Display Keypoints", rgbSlice);
+    static int unique_image_id = 27634;
+    cv::imwrite("oriented_keypoints_" + std::to_string(unique_image_id++) + ".png", rgbSlice);
+    // cv::waitKey(0);
+    // cv::destroyAllWindows();
 }
 
 
@@ -586,7 +586,12 @@ float SIFT2DStitcher::parabolicInterpolation(float y1, float y2, float y3) {
     // Assume that x1 = -1, x2 = 0, x3 = 1
     float a = y2 - (y1 + y3) / 2;
     float b = (y3 - y1) / 4;
-    return b / a;
+    
+    if (a != 0) {
+        return b / a;
+    }
+    
+    return 0;
 }
 
 

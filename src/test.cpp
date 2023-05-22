@@ -1,5 +1,6 @@
 #include <memory>
 #include <fstream>
+#include <chrono>
 #include <stitcher/nlohmann/json.hpp>
 #include "stitcher.h"
 #include "separation_stitcher.h"
@@ -15,19 +16,16 @@ using json = nlohmann::json;
 
 int main(int argc, char *argv[]) {
     AlgoList stitchers = {
-        {std::make_shared<L2DirectAlignmentStitcher>(), "l2_direct_alignment"},
-        {std::make_shared<OpenCVSIFT2DStitcher>(), "opencv_sift_2d"},
-        {std::make_shared<SIFT2DStitcher>(), "sift_2d"}};
-        // {std::make_shared<SIFT3DStitcher>(), "sift_3d"}};
+        // {std::make_shared<L2DirectAlignmentStitcher>(), "l2_direct_alignment"},
+        // {std::make_shared<OpenCVSIFT2DStitcher>(), "opencv_sift_2d"},
+        // {std::make_shared<SIFT2DStitcher>(), "sift_2d"}};
+        {std::make_shared<SIFT3DStitcher>(), "sift_3d"}};
 
     std::vector<std::string> recons_names = {
-        "bicycle_wheel_x512",
-        "big_wheel_x512",
-        "nonuniform_2_x512",
-        "pores_2_x512",
-        "big_wheel_x128",
-        "nonuniform_2_x128",
-        "nonuniform_x256",
+        "bicycle_wheel_x256",
+        "big_wheel_x256",
+        "nonuniform_2_x256",
+        "pores_2_x256",
     };
 
     for (std::string& recon_name : recons_names) {
@@ -60,8 +58,13 @@ int main(int argc, char *argv[]) {
         // Stitch
         for (auto stitcher : stitchers) {
             std::string recon_result_path = recon_path + "/" + stitcher.second;
+            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             auto result_recon = stitcher.first->stitch(recons);
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            float time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
             result_recon->saveToJson(recon_result_path);
+
+            printf("%s %s. Time: %f\n", recon_name.data(), stitcher.second.data(), time);
 
             // Dump stitching params
             std::vector<json> params_data_vec(parts_num);
@@ -72,7 +75,10 @@ int main(int argc, char *argv[]) {
                 params_data_vec[part_id]["offset_z"] = params.offsetZ;
             }
 
-            json params_data(params_data_vec);
+            // json params_data(params_data_vec);
+            json params_data;
+            params_data["params"] = params_data_vec;
+            params_data["time"] = time;
             std::string params_path = recon_result_path + "/params.json";
             std::ofstream pfs(params_path);
             if(!pfs) {
