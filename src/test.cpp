@@ -22,10 +22,10 @@ int main(int argc, char *argv[]) {
         {std::make_shared<SIFT3DStitcher>(), "sift_3d"}};
 
     std::vector<std::string> recons_names = {
-        "bicycle_wheel_x256",
-        "big_wheel_x256",
-        "nonuniform_2_x256",
-        "pores_2_x256",
+        // "bicycle_wheel_x256",
+        "big_wheel_x128",
+        // "nonuniform_2_x256",
+        // "pores_2_x256",
     };
 
     for (std::string& recon_name : recons_names) {
@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             auto result_recon = stitcher.first->stitch(recons);
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            float time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+            float time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();/*
             result_recon->saveToJson(recon_result_path);
 
             printf("%s %s. Time: %f\n", recon_name.data(), stitcher.second.data(), time);
@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
             // Write slice image
             TiffImage<uint8_t> img;
             result_recon->getSlice<uint8_t>(img, 0, result_recon->getSize().x / 2, true);
-            img.saveAs((recon_result_path + ".png").data());
+            img.saveAs((recon_result_path + ".png").data());*/
         }        
     }
 

@@ -40,7 +40,7 @@ private:
     int octavesNum = 3;
     const int scaleLevelsNum = 3;
     const int blurLevelsNum = scaleLevelsNum + 3;
-     double sigma = 0.9;
+    double sigma = 0.9;
     std::vector<std::pair<int, float>> planes = {{0, 0.4}, {0, 0.5}, {0, 0.6}, {1, 0.4}, {1, 0.5}, {1, 0.6}, {3, 0}, {4, 0}};
 };
 

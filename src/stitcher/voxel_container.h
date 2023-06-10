@@ -92,6 +92,12 @@ void VoxelContainer::getSlice(TiffImage<T>& img, const int planeId, const int sl
     switch (planeId) {
         // Sagittal plane
         case 0: {
+            if (sliceId < 0 || sliceId >= size.x) {
+                printf("Error: Slice %i out of X range [0, %lu]\n", sliceId, size.x);
+                fflush(stdout);
+                exit(1);
+            }
+
             img.resize(size.y, size.z);
             T* bits = img.getData();
 
@@ -106,6 +112,12 @@ void VoxelContainer::getSlice(TiffImage<T>& img, const int planeId, const int sl
 
         // Coronal plane
         case 1: {
+            if (sliceId < 0 || sliceId >= size.y) {
+                printf("Error: Slice %i out of Y range [0, %lu]\n", sliceId, size.y);
+                fflush(stdout);
+                exit(1);
+            }
+
             img.resize(size.x, size.z);
             T* bits = img.getData();
 
@@ -120,6 +132,12 @@ void VoxelContainer::getSlice(TiffImage<T>& img, const int planeId, const int sl
 
         // Transverse plane
         case 2: {
+            if (sliceId < 0 || sliceId >= size.z) {
+                printf("Error: Slice %i out of Z range [0, %lu]\n", sliceId, size.z);
+                fflush(stdout);
+                exit(1);
+            }
+
             img.resize(size.x, size.y);
             T* bits = img.getData();
 

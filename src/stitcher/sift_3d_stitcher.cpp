@@ -19,6 +19,12 @@ float SIFT3DStitcher::getMedian(std::vector<float>& array) {
 
     std::sort(array.begin(), array.end());
 
+    // for (auto i : array) {
+    //     std::cout << i << " ";
+    // }
+
+    std::cout << std::endl;
+
     return array[size / 2];
 }
 
@@ -56,6 +62,7 @@ void SIFT3DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
     std::vector<cv::DMatch> matches;
     cv::Mat descriptors_1, descriptors_2;
     cv::BFMatcher matcher;
+    // cv::FlannBasedMatcher matcher;
 
     const int start_1 = size_1.z - maxOverlap;
     const int end_1 = size_1.z;
@@ -68,6 +75,10 @@ void SIFT3DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
     TiffImage<float> sliceImg;
 
     for (auto plane : planes) {
+        // TiffImage<unsigned char> charSliceImg_1, charSliceImg_2;
+        // scan_1.getSlice<unsigned char>(charSliceImg_1, plane.first, size_1.x * plane.second, true);
+        // scan_2.getSlice<unsigned char>(charSliceImg_2, plane.first, size_2.x * plane.second, true);
+
         DoG_1.clear();
         DoG_2.clear();
         keypoints_1.clear();
@@ -92,21 +103,31 @@ void SIFT3DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
             for (int scale_level = 0; scale_level < blurLevelsNum; ++scale_level) {
                 VoxelContainer::Vector3 gSize_1 = scanGaussians_1[octave][scale_level].getSize();
                 scanGaussians_1[octave][scale_level].getSlice<float>(sliceImg, plane.first, gSize_1.x * plane.second, false);
-                gaussians_1[octave][scale_level] = cv::Mat_<float>(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData());
+                cv::Mat_<float>(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData()).copyTo(gaussians_1[octave][scale_level]);
+
+                // double min_val, max_val;
+                // cv::Point min_loc, max_loc;
+                // cv::minMaxLoc(gaussians_1[octave][scale_level], &min_val, &max_val, &min_loc, &max_loc);
+                // printf("MINMAX_GAUSS: %lf %lf\n", min_val, max_val);
                 
                 VoxelContainer::Vector3 gSize_2 = scanGaussians_2[octave][scale_level].getSize();
                 scanGaussians_2[octave][scale_level].getSlice<float>(sliceImg, plane.first, gSize_2.x * plane.second, false);
-                gaussians_2[octave][scale_level] = cv::Mat_<float>(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData());
+                cv::Mat_<float>(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData()).copyTo(gaussians_2[octave][scale_level]);
+
+                // double min_val, max_val;
+                // cv::Point min_loc, max_loc;
+                // cv::minMaxLoc(gaussians_2[octave][scale_level], &min_val, &max_val, &min_loc, &max_loc);
+                // printf("MINMAX_GAUSS: %lf %lf\n", min_val, max_val);
             }
 
             for (int scale_level = 0; scale_level < blurLevelsNum - 1; ++scale_level) {
                 VoxelContainer::Vector3 dSize_1 = scanDoGs_1[octave][scale_level].getSize();
                 scanDoGs_1[octave][scale_level].getSlice<float>(sliceImg, plane.first, dSize_1.x * plane.second, false);
-                DoG_1[octave][scale_level] = cv::Mat_<float>(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData());
+                cv::Mat_<float>(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData()).copyTo(DoG_1[octave][scale_level]);
                 
                 VoxelContainer::Vector3 dSize_2 = scanDoGs_2[octave][scale_level].getSize();
                 scanDoGs_2[octave][scale_level].getSlice<float>(sliceImg, plane.first, dSize_2.x * plane.second, false);
-                DoG_2[octave][scale_level] = cv::Mat_<float>(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData());
+                cv::Mat_<float>(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData()).copyTo(DoG_2[octave][scale_level]);
             }
         }
 
@@ -124,6 +145,15 @@ void SIFT3DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
         orient(gaussians_2, DoG_2, keypoints_2);
 
         printf("Oriented %lu and %lu keypoints\n", keypoints_1.size(), keypoints_2.size());
+        
+        // for (int i = 0; i < gaussians_1.size(); ++i) {
+        //     for (int j = 0; j < gaussians_1[i].size(); ++j) {
+        //         double min_val, max_val;
+        //         cv::Point min_loc, max_loc;
+        //         cv::minMaxLoc(gaussians_1[i][j], &min_val, &max_val, &min_loc, &max_loc);
+        //         printf("GAUSS_MINMAX LINE 1: %lf %lf %i %i\n", min_val, max_val, i, j);
+        //     }
+        // }
 
         // TiffImage<unsigned char> charSliceImg_1, charSliceImg_2;
         // scan_1.getSlice<unsigned char>(charSliceImg_1, plane.first, size_1.x * plane.second, true);
@@ -156,7 +186,7 @@ void SIFT3DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
     
     // Get optimal offset
     int offsetZ = getMedian(offsetsZ);
-/*
+
     std::vector<std::pair<int, float>> h_planes = {{2, 0.3}, {2, 0.4}, {2, 0.5}, {2, 0.6}, {2, 0.7}};
 
     for (auto plane : h_planes) {
@@ -187,34 +217,71 @@ void SIFT3DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
                 
                 int gOffsetZ = static_cast<float>(gSize_1.z) / static_cast<float>(maxOverlap) * static_cast<float>(offsetZ);
                 int slice_id_2 = gOffsetZ * plane.second;
-                int slice_id_1 = gSize_1.z - gOffsetZ + slice_id_2;
+                int slice_id_1 = gOffsetZ - slice_id_2;
                 // printf("OFF1: %li %i %i %i %i %i\n", gSize_1.z, maxOverlap, offsetZ, gOffsetZ, slice_id_1, slice_id_2);
                 // fflush(stdout);
 
                 scanGaussians_1[octave][scale_level].getSlice<float>(sliceImg, plane.first, slice_id_1, false);
-                gaussians_1[octave][scale_level] = cv::Mat_<float>(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData());
+                cv::Mat_<float>(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData()).copyTo(gaussians_1[octave][scale_level]);
+                // cv::Mat normalizedImg;
+                // cv::normalize(gaussians_1[octave][scale_level], normalizedImg, 0, 1, cv::NORM_MINMAX);
+                // cv::imshow("Gaussian 1", normalizedImg);
+                // cv::waitKey(0);
 
                 scanGaussians_2[octave][scale_level].getSlice<float>(sliceImg, plane.first, slice_id_2, false);
-                gaussians_2[octave][scale_level] = cv::Mat_<float>(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData());
+                cv::Mat_<float>(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData()).copyTo(gaussians_2[octave][scale_level]);
+                // cv::normalize(gaussians_2[octave][scale_level], normalizedImg, 0, 1, cv::NORM_MINMAX);
+                // cv::imshow("Gaussian 2", normalizedImg);
+                // cv::waitKey(0);
+
+                // double min_val, max_val;
+                // cv::minMaxLoc(gaussians_1[octave][scale_level], &min_val, &max_val);
+                // printf("GAUSS_MINMAX LINE 2.0: %lf %lf %i %i\n", min_val, max_val, octave, scale_level);
+                // cv::minMaxLoc(gaussians_1[octave][scale_level], &min_val, &max_val);
+                // printf("GAUSS_MINMAX LINE 2.0 (REPEAT): %lf %lf %i %i\n", min_val, max_val, octave, scale_level);
             }
 
+            // double minVal, maxVal;
+            // cv::minMaxLoc(gaussians_1[octave][0], &minVal, &maxVal);
+            // printf("GAUSS_MINMAX LINE 2.0 (BETWEEN): %lf %lf %i %i\n", minVal, maxVal, octave, 0);
+
             for (int scale_level = 0; scale_level < blurLevelsNum - 1; ++scale_level) {
+                // double min_val, max_val;
+                // cv::Point min_loc, max_loc;
+                // cv::minMaxLoc(gaussians_1[octave][scale_level], &min_val, &max_val, &min_loc, &max_loc);
+                // printf("GAUSS_MINMAX LINE 2.0.1: %lf %lf %i %i\n", min_val, max_val, octave, scale_level);
+
                 VoxelContainer::Vector3 dSize_1 = scanDoGs_1[octave][scale_level].getSize();
                 VoxelContainer::Vector3 dSize_2 = scanDoGs_2[octave][scale_level].getSize();
 
                 int dOffsetZ = static_cast<float>(dSize_1.z) / static_cast<float>(maxOverlap) * static_cast<float>(offsetZ);
                 int slice_id_2 = dOffsetZ * plane.second;
-                int slice_id_1 = dSize_1.z - dOffsetZ + slice_id_2;
+                int slice_id_1 = dOffsetZ - slice_id_2;
                 // printf("OFF2: %li %i %i %i %i %i\n", dSize_1.z, maxOverlap, offsetZ, dOffsetZ, slice_id_1, slice_id_2);
                 // fflush(stdout);
 
                 scanDoGs_1[octave][scale_level].getSlice<float>(sliceImg, plane.first, slice_id_1, false);
-                DoG_1[octave][scale_level] = cv::Mat_<float>(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData());
+                cv::Mat_<float>(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData()).copyTo(DoG_1[octave][scale_level]);
+                // cv::Mat normalizedImg;
+                // cv::normalize(DoG_1[octave][scale_level], normalizedImg, 0, 1, cv::NORM_MINMAX);
+                // cv::imshow("DoG 1", normalizedImg);
+                // cv::waitKey(0);
 
                 scanDoGs_2[octave][scale_level].getSlice<float>(sliceImg, plane.first, slice_id_2, false);
-                DoG_2[octave][scale_level] = cv::Mat_<float>(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData());
+                cv::Mat_<float>(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData()).copyTo(DoG_2[octave][scale_level]);
+                // cv::normalize(DoG_2[octave][scale_level], normalizedImg, 0, 1, cv::NORM_MINMAX);
+                // cv::imshow("DoG 2", normalizedImg);
+                // cv::waitKey(0);
             }
         }
+
+        // for (int i = 0; i < gaussians_1.size(); ++i) {
+        //     for (int j = 0; j < gaussians_1[i].size(); ++j) {
+        //         double min_val, max_val;
+        //         cv::minMaxLoc(gaussians_1[i][j], &min_val, &max_val);
+        //         printf("GAUSS_MINMAX LINE 2.1: %lf %lf %i %i\n", min_val, max_val, i, j);
+        //     }
+        // }
 
         detect(DoG_1, keypoints_1);
         detect(DoG_2, keypoints_2);
@@ -226,6 +293,14 @@ void SIFT3DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
 
         printf("Localized %lu and %lu keypoints\n", keypoints_1.size(), keypoints_2.size());
 
+        // for (int i = 0; i < gaussians_1.size(); ++i) {
+        //     for (int j = 0; j < gaussians_1[i].size(); ++j) {
+        //         double min_val, max_val;
+        //         cv::minMaxLoc(gaussians_1[i][j], &min_val, &max_val);
+        //         printf("GAUSS_MINMAX LINE 2.2: %lf %lf %i %i\n", min_val, max_val, i, j);
+        //     }
+        // }
+
         orient(gaussians_1, DoG_1, keypoints_1);
         orient(gaussians_2, DoG_2, keypoints_2);
 
@@ -236,7 +311,7 @@ void SIFT3DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
 
         // TiffImage<unsigned char> charSliceImg_1, charSliceImg_2;
         // int slice_id_2 = offsetZ * plane.second;
-        // int slice_id_1 = maxOverlap - offsetZ + slice_id_2;
+        // int slice_id_1 = size_1.z - offsetZ + slice_id_2;
         // scan_1.getSlice<unsigned char>(charSliceImg_1, plane.first, slice_id_1, true);
         // scan_2.getSlice<unsigned char>(charSliceImg_2, plane.first, slice_id_2, true);
         // displayKeypoints(charSliceImg_1, keypoints_1, 0, size_1.x);
@@ -244,7 +319,7 @@ void SIFT3DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
         
         matcher.match(descriptors_1, descriptors_2, matches);
 
-        // displayMatches(charSliceImg_1, charSliceImg_2, keypoints_1, keypoints_2, matches, maxOverlap);
+        // displayMatches(charSliceImg_1, charSliceImg_2, keypoints_1, keypoints_2, matches, charSliceImg_1.getHeight());
 
         printf("Total %lu matches on plane %i:%.2f\n", matches.size(), plane.first, plane.second);
 
@@ -254,7 +329,7 @@ void SIFT3DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
             offsetsX.push_back(kp_2.x - kp_1.x);
             offsetsY.push_back(kp_2.y - kp_1.y);
         }
-    }*/
+    }
 
     // Get optimal offsets
     int offsetX = getMedian(offsetsX);
@@ -297,16 +372,20 @@ void SIFT3DStitcher::displayMatches(TiffImage<unsigned char>& sliceImg_1, TiffIm
     cv::cvtColor(graySlice_2, rgbSlice_2, cv::COLOR_GRAY2RGB);
     // cv::drawKeypoints(rgbSlice, keypoints, rgbSlice, cv::Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
     cv::Mat matchResult;
-    cv::drawMatches(rgbSlice_1, keypoints_1, rgbSlice_2, keypoints_2, matches, matchResult);
+    cv::drawMatches(rgbSlice_1, keypoints_1, rgbSlice_2, keypoints_2, matches, matchResult, cv::Scalar::all(-1), cv::Scalar::all(-1), std::vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
     cv::namedWindow("Display Matches", cv::WINDOW_AUTOSIZE);
     cv::imshow("Display Matches", matchResult);
     int key = -1;
     while (key != 'q') key = cv::waitKeyEx(100);
+    static int unique_image_id = 0;
+    cv::imwrite("matches_" + std::to_string(unique_image_id++) + ".png", matchResult);
     cv::destroyAllWindows();
 }
 
 
 void SIFT3DStitcher::displaySlice(const VoxelContainer& src) {
+    // printf("%f ", src.at(src.getSize().x / 2, src.getSize().y / 2, src.getSize().z / 2));
+
     TiffImage<float> sliceImg;
     src.getSlice<float>(sliceImg, 0, src.getSize().x / 2, false);
     cv::Mat_<float> slice(sliceImg.getHeight(), sliceImg.getWidth(), sliceImg.getData());
@@ -323,6 +402,7 @@ void SIFT3DStitcher::displaySlice(const VoxelContainer& src) {
 void SIFT3DStitcher::gaussianBlur(const VoxelContainer& src, VoxelContainer& dst, const double sigma, const int start, const int end) {
     int radius = 2 * sigma;
     size_t gSize = 2 * radius + 1;
+    printf("%lf %i %li\n", sigma, radius, gSize);
     // std::cout << "RS: " << radius << ' ' << sigma << std::endl;
     VoxelContainer gaussian({gSize, gSize, gSize}, {0, 1});
     float sum = 0;
@@ -352,10 +432,11 @@ void SIFT3DStitcher::gaussianBlur(const VoxelContainer& src, VoxelContainer& dst
             for (int sx = 0; sx < size.x; ++sx) {
                 for (int z = -radius; z <= radius; ++z) {
                     int lz = sz + z + start;
-                    if (lz < 0 || lz >= size.z) {
+                    if (lz < start || lz >= size.z + start) {
                         continue;
                     }
                     for (int y = -radius; y <= radius; ++y) {
+                        // printf()
                         int ly = sy + y;
                         if (ly < 0 || ly >= size.y) {
                             continue;
@@ -365,15 +446,19 @@ void SIFT3DStitcher::gaussianBlur(const VoxelContainer& src, VoxelContainer& dst
                             if (lx < 0 || lx >= size.x) {
                                 continue;
                             }
+                            // float dval = src.at(sx, sy, sz);
+                            // printf("%f ", dval);
                             dst.at(sx, sy, sz) += src.at(lx, ly, lz) * gaussian.at(x + radius, y + radius, z + radius) / (sum * radius * radius);
                         }
                     }
                 }
+                // float dval = src.at(sx, sy, sz);
+                // printf("%f (%i %i %i)\n", dval, sx, sy, sz);
             }
         }
     }
 
-    // displaySlice(dst);
+    // displaySlice(src);
 }
 
 
@@ -670,6 +755,11 @@ void SIFT3DStitcher::orient(const std::vector<std::vector<cv::Mat>>& gaussians, 
 
         const cv::Mat& img = gaussians[kp.octave][kp.class_id];
 
+        // double min_val, maxVal;
+        // cv::Point min_loc, max_loc;
+        // cv::minMaxLoc(img, &min_val, &maxVal, &min_loc, &max_loc);
+        // printf("MINMAX_ORIENT: %lf %lf\n", min_val, maxVal);
+
         for (int y = center.y - radius; y <= center.y + radius; ++y) {
             if (y <= 0 || y >= img.rows - 1) {
                 continue;
@@ -758,6 +848,15 @@ void SIFT3DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>
 
     descriptors = cv::Mat1f::zeros(kps_num, window_width * window_width * hist_bins_num);
 
+    // for (int i = 0; i < gaussians.size(); ++i) {
+    //     for (int j = 0; j < gaussians[i].size(); ++j) {
+    //         double min_val, max_val;
+    //         cv::Point min_loc, max_loc;
+    //         cv::minMaxLoc(gaussians[i][j], &min_val, &max_val, &min_loc, &max_loc);
+    //         printf("LINE_MINMAX_DESC: %lf %lf %i %i\n", min_val, max_val, i, j);
+    //     }
+    // }
+
     for (int kp_id = 0; kp_id < kps_num; ++kp_id) {
         cv::KeyPoint& kp = keypoints[kp_id];
 
@@ -771,6 +870,11 @@ void SIFT3DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>
         cv::Point center(std::round(kp.pt.x / scale), std::round(kp.pt.y / scale));
 
         const cv::Mat& img = gaussians[kp.octave][kp.class_id];
+
+        // double min_val, max_val;
+        // cv::Point min_loc, max_loc;
+        // cv::minMaxLoc(img, &min_val, &max_val, &min_loc, &max_loc);
+        // printf("MINMAX_DESC: %lf %lf\n", min_val, max_val);
 
         for (int y = center.y - radius; y < center.y + radius; ++y) {
             if (y <= 0 || y >= img.rows - 1) {
@@ -811,6 +915,10 @@ void SIFT3DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>
                 // fflush(stdout);
 
                 descriptors.at<float>(kp_id, hist_id) += gauss_weight * x_weight * y_weight * a_weight * magnitude;
+                // float desc_val = descriptors.at<float>(kp_id, hist_id);
+                // if (std::isnan(desc_val)) {
+                //     printf("%f %f %f %f %f %f %f %f\n", desc_val, gauss_weight, x_weight, y_weight, a_weight, magnitude, dx, dy);
+                // }
             }
         }
 
@@ -821,7 +929,11 @@ void SIFT3DStitcher::calculateDescriptors(const std::vector<std::vector<cv::Mat>
         cv::normalize(descriptor, descriptor);
 
         // for (int i = 0; i < descriptor.cols; ++i) {
-        //     printf("%f ", descriptor.at<float>(i));
+            // printf("%f ", descriptor.at<float>(i));
+        //     float desc_val = descriptor.at<float>(i);
+        //     if (std::isnan(desc_val)) {
+        //         printf("%f ", desc_val);
+        //     }
         // }
         // printf("]\n\n[");
     }
