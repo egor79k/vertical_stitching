@@ -9,9 +9,6 @@
 
 
 class SIFT3DStitcher : public StitcherImpl {
-public:
-    // void testDetection();
-
 private:
     // struct KeyPoint {
     //     int x;
