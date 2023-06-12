@@ -6,7 +6,7 @@ float SIFT3DStitcher::getMedian(std::vector<float>& array) {
     int size = array.size();
     
     if (size == 0) {
-        return 0;
+        return 1;
     }
     
     if (size < 3) {
@@ -38,7 +38,8 @@ void SIFT3DStitcher::estimateStitchParams(const VoxelContainer& scan_1, VoxelCon
     octavesNum = std::log2(size / 16);
 
     if (size < 512) {
-        sigma = 1.4 * size / 512 + 0.2;
+        // sigma = 1.4 * size / 512 + 0.2;
+        sigma = 0.7;
     }
 
     const int refOffsetZ = scan_2.getRefStitchParams().offsetZ;
@@ -598,7 +599,7 @@ void SIFT3DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
                 // printf("Keypoint moved outside of image\n");
                 break;
             }
-            
+
             if (kp_shift.at<float>(0) < min_shift &&
                 kp_shift.at<float>(1) < min_shift &&
                 kp_shift.at<float>(2) < min_shift) {
@@ -608,7 +609,7 @@ void SIFT3DStitcher::localize(const std::vector<std::vector<cv::Mat>>& DoG, std:
                                                                grad.at<float>(2) * kp_shift.at<float>(2)));
 
                 if (contrast * scaleLevelsNum < min_contrast) {
-                    // printf("Low contrast keypoint discarded\n");
+                    // printf("Low contrast keypoint discarded %f [%f %f %f] (%f %f %f)\n", contrast, grad.at<float>(0), grad.at<float>(1), grad.at<float>(2), kp_shift.at<float>(0), kp_shift.at<float>(1), kp_shift.at<float>(2));
                     break;
                 }
 

@@ -6,7 +6,7 @@ float SIFT2DStitcher::getMedian(std::vector<float>& array) {
     int size = array.size();
     
     if (size == 0) {
-        return 0;
+        return 1;
     }
     
     if (size < 3) {
