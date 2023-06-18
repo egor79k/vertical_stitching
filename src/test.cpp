@@ -16,9 +16,9 @@ using json = nlohmann::json;
 
 int main(int argc, char *argv[]) {
     AlgoList stitchers = {
-        // {std::make_shared<L2DirectAlignmentStitcher>(), "l2_direct_alignment"},
-        // {std::make_shared<OpenCVSIFT2DStitcher>(), "opencv_sift_2d"},
-        // {std::make_shared<SIFT2DStitcher>(), "sift_2d"}};
+        {std::make_shared<L2DirectAlignmentStitcher>(), "l2_direct_alignment"},
+        {std::make_shared<OpenCVSIFT2DStitcher>(), "opencv_sift_2d"},
+        {std::make_shared<SIFT2DStitcher>(), "sift_2d"},
         {std::make_shared<SIFT3DStitcher>(), "sift_3d"}};
 
     std::vector<std::string> recons_names = {
