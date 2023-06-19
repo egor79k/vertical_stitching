@@ -52,3 +52,4 @@ result->saveToJson('rec_stitched');
 ```
 
 ## Ссылки:
+Документация: https://egor79k.github.io/vertical_stitching/html/index.html
