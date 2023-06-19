@@ -8,18 +8,20 @@
 
 /**
  * \brief Special data structure for storing 3D reconstructions.
- * VoxelContainer stores a 3D volume of CT reconstruction as an one-dimensional array of float values representing each voxel. There are several ways to initialize it:
+ * 
+ * VoxelContainer stores a 3D volume of CT reconstruction as an one-dimensional
+ * array of float values representing each voxel. There are several ways to
+ * initialize it:
  * - Create an empty one using VoxelContainer().
- * - Read it from the list of images using VoxelContainer(const std::vector<std::string>&) for new or loadFromImages(const std::vector<std::string>&) for an existing one.
+ * - Read it from the list of images using VoxelContainer(const std::vector<std::string>&)
+ *   for new or loadFromImages(const std::vector<std::string>&) for an existing one.
  * - Create it on existing data using VoxelContainer(float*, const Vector3&, const Range&, const StitchParams&).
  * - Read it from the special parameters file using loadFromJson(const std::string&).
  * - Reallocate empty memory using create(const Vector3&, const Range&).
  */
 class VoxelContainer {
 public:
-    /**
-     * \brief Structure for storing 3D container size.
-     */
+    /// Structure for storing 3D container size.
     struct Vector3 {
         size_t x;
         size_t y;
@@ -33,9 +35,7 @@ public:
         size_t volume() const;
     };
 
-    /**
-     * \brief Structure for storing range of values in reconstruction data.
-     */
+    /// Structure for storing range of values in reconstruction data.
     struct Range {
         float min;
         float max;
@@ -45,23 +45,19 @@ public:
          * 
          * \param[in] val Value to be converted
          * \param[in] nr New range
-         * \return Value converted to the new range
+         * \return Value converted to the new range.
          */
         float fit(float val, const Range nr) const;
     };
 
-    /**
-     * \brief Structure for storing transformation params of the reconstruction.
-     */
+    /// Structure for storing transformation params of the reconstruction.
     struct StitchParams {
         int offsetX;
         int offsetY;
         int offsetZ;
     };
     
-    /**
-     * \brief Default constructor. Creates an empty instance.
-     */
+    /// Default constructor. Creates an empty instance.
     VoxelContainer() = default;
 
     /**
@@ -89,16 +85,14 @@ public:
      */
     VoxelContainer(const Vector3& _size, const Range& _range = {0, 0});
 
-    /**
-     * \brief Destructor.
-     */
+    /// Destructor.
     ~VoxelContainer();
 
     /**
      * \brief Reads reconstruction from horizontal slice images.
      * 
      * \param[in] fileNames List of images paths
-     * \return True - if success, false - if failed
+     * \return True - if success, false - if failed.
      */
     bool loadFromImages(const std::vector<std::string>& fileNames);
 
@@ -126,9 +120,7 @@ public:
      */
     void create(const Vector3& _size, const Range& _range = {0, 0});
 
-    /**
-     * \brief Clears container deallocating memory.
-     */
+    /// Clears container deallocating memory.
     void clear();
 
     /**

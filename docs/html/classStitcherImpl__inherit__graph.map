@@ -1,0 +1,9 @@
+<map id="StitcherImpl" name="StitcherImpl">
+<area shape="rect" id="node1" title="Abstract base stitcher class." alt="" coords="5,107,107,133"/>
+<area shape="rect" id="node2" href="$classDirectAlignmentStitcher.html" title="Abstract base stitcher class for all direct alignment algorithms." alt="" coords="155,5,333,32"/>
+<area shape="rect" id="node4" href="$classOpenCVSIFT2DStitcher.html" title="Stitcher class based on the SIFT algorithm from OpenCV." alt="" coords="159,56,329,83"/>
+<area shape="rect" id="node5" href="$classSIFT2DStitcher.html" title="Stitcher class based on the custom SIFT algorithm." alt="" coords="185,107,303,133"/>
+<area shape="rect" id="node6" href="$classSIFT3DStitcher.html" title="Stitcher class based on the SIFT algorithm modified for 3D." alt="" coords="185,157,303,184"/>
+<area shape="rect" id="node7" href="$classSeparationStitcher.html" title="brief Stitcher class uniting reconstructions without any transformations for demonstration." alt="" coords="173,208,315,235"/>
+<area shape="rect" id="node3" href="$classL2DirectAlignmentStitcher.html" title=" " alt="" coords="381,5,575,32"/>
+</map>

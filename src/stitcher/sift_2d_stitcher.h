@@ -7,10 +7,15 @@
 #include "voxel_container.h"
 #include "stitcher.h"
 
-
+/**
+ * \brief Stitcher class based on the custom SIFT algorithm.
+ * 
+ * Uses the same logic for determining stitching parameters as
+ * OpenCVSIFT2DStitcher but uses the custom realization of the SIFT algorithm.
+ */
 class SIFT2DStitcher : public StitcherImpl {
 public:
-    // TEMP FUNCTION FOR TESTING ON 2D IMAGES
+    /// TEMP FUNCTION FOR TESTING ON 2D IMAGES
     void testDetection(const char* img_path_1, const char* img_path_2);
 
 private:

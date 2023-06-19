@@ -1,0 +1,4 @@
+<map id="OpenCVSIFT2DStitcher" name="OpenCVSIFT2DStitcher">
+<area shape="rect" id="node1" title="Stitcher class based on the SIFT algorithm from OpenCV." alt="" coords="5,80,175,107"/>
+<area shape="rect" id="node2" href="$classStitcherImpl.html" title="Abstract base stitcher class." alt="" coords="39,5,141,32"/>
+</map>

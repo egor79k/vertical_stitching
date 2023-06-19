@@ -7,7 +7,15 @@
 #include "voxel_container.h"
 #include "stitcher.h"
 
-
+/**
+ * \brief Stitcher class based on the SIFT algorithm modified for 3D.
+ * 
+ * Uses the same logic for determining stitching parameters as SIFT2DStitcher
+ * but the pyramid of Gaussians and therefore the Difference of Gaussians (DoG)
+ * in SIFT are built in 3D space (using 3D convolution with Gaussian kernel
+ * instead of 2D) and then all 2D pyramids and DoGs are sliced from it in the
+ * required planes.
+ */
 class SIFT3DStitcher : public StitcherImpl {
 private:
     // struct KeyPoint {

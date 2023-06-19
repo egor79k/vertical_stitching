@@ -10,15 +10,18 @@
 
 /**
  * \brief Class for manipulations with monochrome TIFF images of different data types.
- * Work with TIFF files is based on the <a href="https://jkriege2.github.io/TinyTIFF/index.html">TinyTIFF</a> library, so this class supports reading and writing TIFF images with the following data types: int (8, 16, 32 bits), unsigned int (8, 16, 32 bits), float (32 bits).
+ * 
+ * Work with TIFF files is based on the
+ * <a href="https://jkriege2.github.io/TinyTIFF/index.html">TinyTIFF</a>
+ * library, so this class supports reading and writing TIFF images with the
+ * following data types: int (8, 16, 32 bits), unsigned int (8, 16, 32 bits),
+ * float (32 bits).
  */
 template<typename T>
 class TiffImage
 {
 public:
-    /**
-     * \brief Default constructor. Creates an empty image.
-     */
+    /// Default constructor. Creates an empty image.
     TiffImage() {}
 
     /**
@@ -36,9 +39,7 @@ public:
      */
     TiffImage(const TiffImage& other);
 
-    /**
-     * \brief Destructor.
-     */
+    /// Destructor.
     ~TiffImage();
 
     /**
@@ -47,7 +48,7 @@ public:
      * \param[in] fileName Iamge path
      * \param[in] img_width Destination variable for image width
      * \param[in] img_height Destination variable for image height
-     * \return True - if success, false - if failed
+     * \return True - if success, false - if failed.
      */
     static bool getSizeFromFile(const char* fileName, size_t& img_width, size_t& img_height);
 
@@ -62,9 +63,7 @@ public:
      */
     static bool readFromFile(const char* fileName, T* data, size_t& width, size_t& height);
 
-    /**
-     * \brief Clears image deallocating memory.
-     */
+    /// Clears image deallocating memory.
     void clear();
 
     /**
@@ -78,7 +77,9 @@ public:
     /**
      * \brief Writes image in other formats.
      * 
-     * \param[in] fileName Image save path with specified format extention. See <a href="https://docs.opencv.org/3.4/d4/da8/group__imgcodecs.html#gabbc7ef1aa2edfaa87772f1202d67e0ce">cv::imwrite</a> for supported formats.
+     * \param[in] fileName Image save path with specified format extention. See
+     * <a href="https://docs.opencv.org/3.4/d4/da8/group__imgcodecs.html#gabbc7ef1aa2edfaa87772f1202d67e0ce">cv::imwrite</a>
+     * for supported formats.
      * \return True - if success, false - if failed.
      */
     bool saveAs(const char* fileName) const;
